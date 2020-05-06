@@ -1,0 +1,272 @@
+<html>
+<head>
+<title>Home-made grid test</title>
+<meta charset='UTF-8'/>
+<style>
+table, th, td {
+    border: 1px solid black;
+    background-color: white;
+    border-collapse: collapse;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+table.input {
+    position: absolute;
+}
+input#cell {
+    min-height:20px;
+    width: 200px;
+}
+</style>
+<script>
+function createDataEntryGrid(containerId, rows, columns) {
+    var rowCount = rows;
+    var columnCount = columns;
+    var anchorRow = 1;
+    var anchorColumn = 0;
+    var returnColumn = 0;
+    var table = document.getElementById(containerId); // while we aren't creating our own table
+    function getRow(r) {
+        return table.getElementsByTagName('TR')[r];
+    }
+    function getCell(r,c) {
+        return getRow(r).getElementsByTagName('TD')[c];
+    }
+    function getAnchor() {
+        return getCell(anchorRow, anchorColumn);
+    }
+    function removeContextMenu() {
+        const selects = table.getElementsByTagName('SELECT');
+        for (var i = selects.length - 1; i >= 0; --i) {
+            select = selects[i];
+            const parent = select.parentNode;
+            if (parent) {
+                parent.removeChild(select);
+            }
+        }
+    }
+    function getMouseCoordinates(ev) {
+        // polyfill
+        if (ev.pageX || ev.pageY) {
+            return { x: ev.pageX, y: ev.pageY };
+        }
+        return {
+            x: ev.clientX + document.body.scrollLeft + document.documentElement.scrollLeft,
+            y: ev.clientY + document.body.scrollTop + document.documentElement.scrollTop
+        }
+    }
+    function preventDefault(ev) {
+        // Firefox polyfill
+        if (ev.preventDefault) {
+            ev.preventDefault();
+        }
+        return false;
+    }
+    function handleInputKey(ev) {
+        var ev = ev? ev : window.event; // polyfill
+        if (ev.keyCode === 9) {
+            if (ev.shiftKey) {
+                goToPreviousCell();
+            } else {
+                goToNextCell();
+            }
+            return preventDefault(ev);
+        } else if (ev.keyCode === 13) {
+            goToNextRow();
+            return preventDefault(ev);
+        }
+        return true;
+    }
+    function beginEdit() {
+        const input = document.createElement('INPUT');
+        const anchor = getAnchor();
+        input.value = anchor.textContent;
+        anchor.textContent = '';
+        anchor.appendChild(input);
+        input.onkeydown = handleInputKey;
+        input.onblur = commitEdit;
+        input.setSelectionRange(0, input.value.length);
+        input.focus();
+    }
+    function commitEdit() {
+        const anchor = getAnchor();
+        const inputs = anchor.getElementsByTagName('INPUT');
+        if (0 < inputs.length) {
+            const input = inputs[0];
+            // setting textContent deletes the INPUT element
+            anchor.textContent = input.value;
+        }
+    }
+    function getTbody() {
+        const tbodies = table.getElementsByTagName('TBODY');
+        if (tbodies.length < 1) {
+            throw 'No tbodies in table!';
+        }
+        return tbodies[0];
+    }
+    function insertRows(r, count) {
+        const tbody = getTbody();
+        const insertFunction = r < rowCount?
+            function(child) { tbody.insertBefore(child, getRow(r)); }
+            : function(child) { tbody.appendChild(child); };
+        for (var i = 0; i !== count; ++i) {
+            const row = document.createElement('TR');
+            const rowHeader = document.createElement('TH');
+            rowHeader.textContent = r + i;
+            row.appendChild(rowHeader);
+            for (var j = 0; j != columnCount; ++j) {
+                row.appendChild(document.createElement('TD'));
+            }
+            rowCount += count;
+            insertFunction(row);
+        }
+        setOnClickCells(r);
+    }
+    function deleteRows(r, count) {
+        const tbody = getTbody();
+        for (i = 0; i !== count; ++i) {
+            tbody.removeChild(tbody.children[r - 1]);
+        }
+        rowCount -= count;
+        setOnClickCells(r);
+    }
+    function doGoToCell(r,c) {
+        commitEdit();
+        getAnchor().removeAttribute('class');
+        if (r < 0 || rowCount <= r
+                || c < 0 || columnCount <= c) {
+            return;
+        }
+        anchorRow = r;
+        anchorColumn = c;
+        getAnchor().setAttribute('class', 'anchor');
+        beginEdit();
+    }
+    function goToNextRow() {
+        if (rowCount <= anchorRow + 1) {
+            insertRows(rowCount, 1);
+        }
+        doGoToCell(anchorRow + 1, returnColumn);
+    }
+    function goToPreviousCell() {
+        doGoToCell(anchorRow, anchorColumn - 1);
+    }
+    function goToNextCell() {
+        if (anchorColumn + 1 < columnCount) {
+            doGoToCell(anchorRow, anchorColumn + 1);
+        } else {
+            goToNextRow();
+        }
+    }
+    function goToCell(r,c) {
+        returnColumn = c;
+        doGoToCell(r,c);
+    }
+    function deleteRowsOption(count) {
+        const el = document.createElement('OPTION');
+        el.setAttribute('option', 'delete');
+        el.textContent = 'Delete Row';
+        return el;
+    }
+    function addRowsBeforeOption(count) {
+        const el = document.createElement('OPTION');
+        el.setAttribute('option', 'add-before');
+        el.textContent = 'Add Row Before';
+        return el;
+    }
+    function addRowsAfterOption(count) {
+        const el = document.createElement('OPTION');
+        el.setAttribute('option', 'add-after');
+        el.textContent = 'Add Row After';
+        return el;
+    }
+    function rowHeaderMenu(ev, r) {
+        let firstRow = r;
+        if (r !== anchorRow) {
+            goToCell(r,1);
+        }
+        const select = document.createElement('SELECT');
+        select.setAttribute('size', 3);
+        const deleteOption = deleteRowsOption();
+        deleteOption.onclick = function() {
+            deleteRows(firstRow, 1);
+        }
+        select.appendChild(deleteOption);
+        const addBeforeOption = addRowsBeforeOption();
+        addBeforeOption.onclick = function() {
+            insertRows(firstRow, 1);
+        }
+        select.appendChild(addBeforeOption);
+        const addAfterOption = addRowsAfterOption();
+        addAfterOption.onclick = function() {
+            insertRows(firstRow + 1, 1);
+        }
+        select.appendChild(addAfterOption);
+        const mousePosition = getMouseCoordinates(ev);
+        select.style.position = 'fixed';
+        select.style.left = mousePosition.x + 'px';
+        select.style.top = mousePosition.y + 'px';
+        table.appendChild(select);
+    }
+    function setOnClickCells(firstRow) {
+        for(var r = firstRow; r < rowCount; ++r) {
+            const row = getRow(r);
+            const thisRow = r;
+            rowHeaders = row.getElementsByTagName('TH');
+            if (0 < rowHeaders.length) {
+                const rh = rowHeaders[0];
+                rh.textContent = r;
+                rh.oncontextmenu = function(ev) {
+                    ev = ev? ev : window.event;
+                    removeContextMenu();
+                    rowHeaderMenu(ev, thisRow);
+                    return preventDefault(ev);
+                }
+            }
+            cells = row.getElementsByTagName('TD');
+            for (var c = 0; c < columnCount; ++c) {
+                const thisColumn = c;
+                cells[c].onclick = function() {
+                    goToCell(thisRow, thisColumn);
+                };
+            }
+        }
+    }
+    setOnClickCells(1);
+    table.onclick = removeContextMenu;
+    return {
+        goToCell: goToCell
+    };
+};
+var dataEntryGrid;
+</script>
+</head>
+<body onload="dataEntryGrid = createDataEntryGrid('input',3,3)">
+    <table id='input' class='data-entry-grid'>
+        <thead>
+            <tr>
+                <th></th>
+                <th>One</th>
+                <th>Two</th>
+                <th>Three</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th>1</th>
+                <td class='anchor'>1</td>
+                <td>2</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <th>2</th>
+                <td>10.1</td>
+                <td>20.2</td>
+                <td>30.3</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
