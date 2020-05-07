@@ -9,10 +9,13 @@ At the moment, just an HTML proof-of-concept with the following features:
 * Right-click menu with:
   * delete rows
   * insert rows
+* Undo and Redo
 
 but lacking:
 
 * Copy and paste
 * Multiple row and column selections
-* Undo and Redo
 * Arrow key navigation
+* Localization
+* Callbacks to grey your own undo/redo buttons
+* Check which browsers it works on
