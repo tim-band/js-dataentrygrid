@@ -19,6 +19,24 @@ input#cell {
     min-height:20px;
     width: 200px;
 }
+table td.selected {
+    border: 1px solid blue;
+    background-color: lightskyblue;
+    border-collapse: collapse;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+table td.anchor {
+    border: 3px solid blue;
+    background-color: lightskyblue;
+    border-collapse: collapse;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
 </style>
 <script>
 function createDataEntryGrid(containerId, rows, columns) {
@@ -26,6 +44,8 @@ function createDataEntryGrid(containerId, rows, columns) {
     var columnCount = columns;
     var anchorRow = 1;
     var anchorColumn = 0;
+    var selectionRow = 1;
+    var selectionColumn = 0;
     var returnColumn = 0;
     var undoStack = [];
     var redoStack = [];
@@ -145,10 +165,13 @@ function createDataEntryGrid(containerId, rows, columns) {
             insertFunction(row);
         }
         rowCount += count;
-        if (r < anchorRow) {
+        if (r <= anchorRow) {
             anchorRow += count;
         }
-        setOnClickCells(r);
+        if (r <= selectionRow) {
+            selectionRow += count;
+        }
+        setCellMouseHandlers(r);
         return function() {
             return deleteRows(r, count);
         };
@@ -171,23 +194,54 @@ function createDataEntryGrid(containerId, rows, columns) {
         if (rowCount <= anchorRow) {
             anchorRow = rowCount - 1;
         }
-        setOnClickCells(r);
+        if (r < selectionRow) {
+            if (r + count < selectionRow) {
+                selectionRow -= count;
+            } else {
+                selectionRow = r;
+            }
+        }
+        if (rowCount <= selectionRow) {
+            selectionRow = rowCount - 1;
+        }
+        setCellMouseHandlers(r);
         return function() {
             const inverse = insertRows(r, count);
             putCells(r, r+count, 0, columnCount, values);
             return inverse;
         };
     }
+    function setSelection(aRow, aColumn, sRow, sColumn) {
+        getAnchor().classList.remove('anchor');
+        forEachRow(Math.min(anchorRow, selectionRow),
+                Math.max(anchorRow, selectionRow) + 1, function(row, ii, i) {
+            forEachColumn(row, Math.min(anchorColumn, selectionColumn),
+                    Math.max(anchorColumn, selectionColumn) + 1, function(cell, jj, j) {
+                cell.classList.remove('selected');
+            });
+        });
+        forEachRow(Math.min(aRow, sRow),
+                Math.max(aRow, sRow) + 1, function(row, ii, i) {
+            forEachColumn(row, Math.min(aColumn, sColumn),
+                    Math.max(aColumn, sColumn) + 1, function(cell, jj, j) {
+                cell.classList.add('selected');
+            });
+        });
+        anchorRow = aRow;
+        anchorColumn = aColumn;
+        selectionRow = sRow;
+        selectionColumn = sColumn;
+        getAnchor().classList.add('anchor');
+    }
     function doGoToCell(r,c) {
         commitEdit();
-        getAnchor().removeAttribute('class');
+        getAnchor().classList.remove('anchor');
         if (r < 0 || rowCount <= r
                 || c < 0 || columnCount <= c) {
             return;
         }
-        anchorRow = r;
-        anchorColumn = c;
-        getAnchor().setAttribute('class', 'anchor');
+        setSelection(r, c, r, c);
+        getAnchor().classList.add('anchor');
         beginEdit();
     }
     function goToNextRow() {
@@ -260,43 +314,58 @@ function createDataEntryGrid(containerId, rows, columns) {
         const rows = table.getElementsByTagName('TR');
         const rEnd = (rows.length < rowEnd? rows.length : rowEnd) - rowStart;
         for (var i = 0; i !== rEnd; ++i) {
-            callback(rows[i + rowStart], i);
+            callback(rows[rowStart + i], i, rowStart + i);
         }
     }
     function forEachColumn(row, columnStart, columnEnd, callback) {
         const cs = row.getElementsByTagName('TD');
         let cEnd = (row.length < columnEnd? row.length : columnEnd) - columnStart;
         for (var i = 0; i !== cEnd; ++i)  {
-            callback(cs[i + columnStart], i);
+            callback(cs[columnStart + i], i, columnStart + i);
         }
     }
-    function setOnClickCells(firstRow) {
-        forEachRow(firstRow, rowCount, function(row, i) {
-            const thisRow = firstRow + i;
+    function setCellMouseHandlers(firstRow) {
+        forEachRow(firstRow, rowCount, function(row, i, thisRow) {
             rowHeaders = row.getElementsByTagName('TH');
             if (0 < rowHeaders.length) {
                 const rh = rowHeaders[0];
-                rh.textContent = firstRow + i;
+                rh.textContent = thisRow;
                 rh.oncontextmenu = function(ev) {
                     ev = getEvent(ev);
                     removeContextMenu();
                     rowHeaderMenu(ev, thisRow);
                     return preventDefault(ev);
                 }
-                forEachColumn(row, 0, columnCount, function(cell, j) {
-                    const thisColumn = j;
+                forEachColumn(row, 0, columnCount, function(cell, j, thisColumn) {
                     cell.onclick = function() {
                         goToCell(thisRow, thisColumn);
                     };
+                    cell.onmouseenter = function(ev) {
+                        ev = getEvent(ev);
+                        // stretch selection over this cell
+                        if (ev.buttons & 1) {
+                            setSelection(anchorRow, anchorColumn, thisRow, thisColumn);
+                            return preventDefault(ev);
+                        }
+                    };
+                    cell.onmousedown = function(ev) {
+                        ev = getEvent(ev);
+                        // set anchor and selection to this cell
+                        if (ev.button === 0) {
+                            commitEdit();
+                            setSelection(thisRow, thisColumn, thisRow, thisColumn);
+                            return preventDefault(ev);
+                        }
+                    }
                 });
             }
         });
     }
     function getCells(rowStart, rowEnd, columnStart, columnEnd) {
         let vss = [];
-        forEachRow(rowStart, rowEnd, function(row, i) {
+        forEachRow(rowStart, rowEnd, function(row) {
             let vs = [];
-            forEachColumn(row, columnStart, columnEnd, function(cell, j) {
+            forEachColumn(row, columnStart, columnEnd, function(cell) {
                 vs.push(cell.textContent);
             });
             vss.push(vs);
@@ -371,7 +440,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     function tableKeyDownHandler(ev) {
         ev = getEvent(ev);
-        if (ev.ctrlKey) {
+        if (ev.ctrlKey || ev.metaKey) {
             if (ev.keyCode === 88) {
                 copySelection();
                 clearSelection();
@@ -391,9 +460,23 @@ function createDataEntryGrid(containerId, rows, columns) {
             return preventDefault(ev);
         }
     }
-    setOnClickCells(1);
+    setCellMouseHandlers(1);
     table.onclick = removeContextMenu;
     table.onkeydown = tableKeyDownHandler;
+    table.onmousemove = function (ev) {
+        ev = getEvent(ev);
+        // prevent default drag-select
+        if (ev.buttons & 1) {
+            return preventDefault(ev);
+        }
+    };
+    table.onmousedown = function (ev) {
+        ev = getEvent(ev);
+        // prevent default drag-select
+        if (ev.button === 0) {
+            return preventDefault(ev);
+        }
+    };
     table.tabIndex = -1;
     const copyPasteBuffer = document.createElement('TEXTAREA');
     copyPasteBuffer.id = 'data-entry-grid-copy-paste-buffer';
@@ -404,7 +487,9 @@ function createDataEntryGrid(containerId, rows, columns) {
     copyPasteBuffer.style.opacity = '0';
     table.appendChild(copyPasteBuffer);
     return {
-        goToCell: goToCell
+        goToCell: goToCell,
+        undo: undo,
+        redo: redo
     };
 };
 var dataEntryGrid;
