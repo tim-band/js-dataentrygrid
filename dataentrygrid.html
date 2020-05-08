@@ -3,7 +3,7 @@
 <title>Home-made grid test</title>
 <meta charset='UTF-8'/>
 <style>
-table, th, td {
+table.data-entry-grid {
     border: 1px solid black;
     background-color: white;
     border-collapse: collapse;
@@ -12,14 +12,19 @@ table, th, td {
     padding-top: 0px;
     padding-bottom: 0px;
 }
-table.input {
-    position: absolute;
+table.data-entry-grid th, table.data-entry-grid td {
+    border: 1px solid black;
+    background-color: white;
+    border-collapse: collapse;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 0px;
+    padding-bottom: 0px;
 }
-input#cell {
-    min-height:20px;
-    width: 200px;
+table.data-entry-grid input {
+    border: 0;
 }
-table td.selected {
+table.data-entry-grid td.selected {
     border: 1px solid blue;
     background-color: lightskyblue;
     border-collapse: collapse;
@@ -28,7 +33,7 @@ table td.selected {
     padding-top: 0px;
     padding-bottom: 0px;
 }
-table td.anchor {
+table.data-entry-grid td.anchor {
     border: 3px solid blue;
     background-color: lightskyblue;
     border-collapse: collapse;
@@ -115,6 +120,16 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     function beginEdit() {
         const input = document.createElement('INPUT');
+        let maxLength = 3;
+        forEachRow(1, rowCount, function(row) {
+            forEachColumn(row, anchorColumn, anchorColumn+1, function(cell) {
+                const c = cell.textContent.length;
+                if (maxLength < c) {
+                    maxLength = c;
+                }
+            });
+        });
+        input.setAttribute('size', maxLength - 2);
         const anchor = getAnchor();
         oldCellValue = input.value = anchor.textContent;
         anchor.textContent = '';
