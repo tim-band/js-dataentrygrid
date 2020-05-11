@@ -184,13 +184,19 @@ function createDataEntryGrid(containerId, rows, columns) {
             insertFunction(row);
         }
         rowCount += count;
+        let selectionEndsMoved = 0;
         if (r <= anchorRow) {
+            selectionEndsMoved += 1;
             anchorRow += count;
         }
         if (r <= selectionRow) {
+            selectionEndsMoved += 1;
             selectionRow += count;
         }
         setCellMouseHandlers(r);
+        if (selectionEndsMoved === 1) {
+            forEachRow(r, r + count, markSelectedColumns);
+        }
         return function() {
             return deleteRows(r, count);
         };
@@ -230,10 +236,15 @@ function createDataEntryGrid(containerId, rows, columns) {
             return inverse;
         };
     }
+    function markSelectedColumns(row) {
+        forEachSelectedColumn(row, function(cell) {
+            cell.classList.add('selected');
+        });
+    }
     function setSelection(aRow, aColumn, sRow, sColumn) {
         getAnchor().classList.remove('anchor');
-        forEachSelectedRow(function(row, ii, i) {
-            forEachSelectedColumn(row, function(cell, jj, j) {
+        forEachSelectedRow(function(row) {
+            forEachSelectedColumn(row, function(cell) {
                 cell.classList.remove('selected');
             });
         });
@@ -241,10 +252,8 @@ function createDataEntryGrid(containerId, rows, columns) {
         anchorColumn = aColumn;
         selectionRow = sRow;
         selectionColumn = sColumn;
-        forEachSelectedRow(function(row, ii, i) {
-            forEachSelectedColumn(row, function(cell, jj, j) {
-                cell.classList.add('selected');
-            });
+        forEachSelectedRow(function(row) {
+            markSelectedColumns(row);
         });
         getAnchor().classList.add('anchor');
     }
@@ -442,8 +451,19 @@ function createDataEntryGrid(containerId, rows, columns) {
         }
     }
     function clearSelection() {
-        let empties = [['']];
-        undoable(putCellsAction(anchorRow, anchorColumn, empties));
+        const firstRow = Math.min(anchorRow, selectionRow);
+        const lastRow = Math.max(anchorRow, selectionRow) + 1;
+        const firstColumn = Math.min(anchorColumn, selectionColumn);
+        const lastColumn = Math.max(anchorColumn, selectionColumn) + 1;
+        let row = [];
+        for (let i = firstColumn; i !== lastColumn; ++i) {
+            row.push('');
+        }
+        let empties = [];
+        for (let j = firstRow; j !== lastRow; ++j) {
+            empties.push(row);
+        }
+        undoable(putCellsAction(firstRow, firstColumn, empties));
     }
     function getClipboard() {
         const buffer = table.getElementsByClassName('data-entry-grid-copy-paste-buffer')[0];
@@ -502,6 +522,10 @@ function createDataEntryGrid(containerId, rows, columns) {
             } else {
                 return;
             }
+            return preventDefault(ev);
+        }
+        if (ev.key === 'Delete' || ev.key === 'Backspace') {
+            clearSelection();
             return preventDefault(ev);
         }
     }
