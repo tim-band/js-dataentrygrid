@@ -135,9 +135,10 @@ function createDataEntryGrid(containerId, rows, columns) {
         anchor.textContent = '';
         anchor.appendChild(input);
         input.onkeydown = handleInputKey;
-        input.onblur = commitEdit;
+        input.onblur = handleInputBlur;
         input.setSelectionRange(0, input.value.length);
         input.focus();
+        console.log('focus input');
     }
     function commitEdit() {
         const anchor = getAnchor();
@@ -154,6 +155,9 @@ function createDataEntryGrid(containerId, rows, columns) {
                 undoable(function() { return putCellsAction(thisRow, thisColumn, vss); });
             }
         }
+    }
+    function handleInputBlur() {
+        commitEdit();
         table.focus();
     }
     function getTbody() {
@@ -300,7 +304,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     function rowHeaderMenu(ev, r) {
         let firstRow = r;
         if (r !== anchorRow) {
-            goToCell(r, 0);
+            setSelection(r, 0, r, columnCount - 1);
         }
         const select = document.createElement('SELECT');
         select.setAttribute('size', 3);
@@ -323,7 +327,10 @@ function createDataEntryGrid(containerId, rows, columns) {
         select.style.position = 'fixed';
         select.style.left = mousePosition.x + 'px';
         select.style.top = mousePosition.y + 'px';
+        select.tabIndex = -1;
+        select.onblur = removeContextMenu;
         table.appendChild(select);
+        return select;
     }
     function forEachRow(rowStart, rowEnd, callback) {
         const rows = table.getElementsByTagName('TR');
@@ -347,8 +354,8 @@ function createDataEntryGrid(containerId, rows, columns) {
                 rh.textContent = thisRow;
                 rh.oncontextmenu = function(ev) {
                     ev = getEvent(ev);
-                    removeContextMenu();
-                    rowHeaderMenu(ev, thisRow);
+                    const select = rowHeaderMenu(ev, thisRow);
+                    select.focus();
                     return preventDefault(ev);
                 }
                 forEachColumn(row, 0, columnCount, function(cell, j, thisColumn) {
@@ -360,6 +367,7 @@ function createDataEntryGrid(containerId, rows, columns) {
                         // stretch selection over this cell
                         if (ev.buttons & 1) {
                             setSelection(anchorRow, anchorColumn, thisRow, thisColumn);
+                            table.focus();
                             return preventDefault(ev);
                         }
                     };
@@ -369,6 +377,7 @@ function createDataEntryGrid(containerId, rows, columns) {
                         if (ev.button === 0) {
                             commitEdit();
                             setSelection(thisRow, thisColumn, thisRow, thisColumn);
+                            table.focus();
                             return preventDefault(ev);
                         }
                     }
@@ -476,7 +485,6 @@ function createDataEntryGrid(containerId, rows, columns) {
         }
     }
     setCellMouseHandlers(1);
-    table.onclick = removeContextMenu;
     table.onkeydown = tableKeyDownHandler;
     table.onmousemove = function (ev) {
         ev = getEvent(ev);

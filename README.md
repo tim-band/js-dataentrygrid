@@ -18,5 +18,11 @@ but lacking:
 * Clearing cells with Delete or Backspace
 * Arrow key navigation
 * Localization
+  * The only text is in the right-click menu; could use icons?
 * Callbacks to grey your own undo/redo buttons
 * Check which browsers it works on
+* Touch screen support
+* Make it suitable for other projects to embed
+  * npm build
+  * minification
+  * test code!
