@@ -55,6 +55,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     var undoStack = [];
     var redoStack = [];
     var oldCellValue = '';
+    var inputBox = null;
     var table = document.getElementById(containerId); // while we aren't creating our own table
     function undoable(action) {
         undoStack.push(action);
@@ -119,7 +120,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         return true;
     }
     function beginEdit() {
-        const input = document.createElement('INPUT');
+        inputBox = document.createElement('INPUT');
         let maxLength = 3;
         forEachRow(1, rowCount, function(row) {
             forEachColumn(row, anchorColumn, anchorColumn+1, function(cell) {
@@ -129,31 +130,30 @@ function createDataEntryGrid(containerId, rows, columns) {
                 }
             });
         });
-        input.setAttribute('size', maxLength - 2);
+        inputBox.setAttribute('size', maxLength - 2);
         const anchor = getAnchor();
-        oldCellValue = input.value = anchor.textContent;
+        oldCellValue = inputBox.value = anchor.textContent;
         anchor.textContent = '';
-        anchor.appendChild(input);
-        input.onkeydown = handleInputKey;
-        input.onblur = handleInputBlur;
-        input.setSelectionRange(0, input.value.length);
-        input.focus();
-        console.log('focus input');
+        anchor.appendChild(inputBox);
+        inputBox.onkeydown = handleInputKey;
+        inputBox.onblur = handleInputBlur;
+        inputBox.setSelectionRange(0, inputBox.value.length);
+        inputBox.focus();
     }
     function commitEdit() {
         const anchor = getAnchor();
-        const inputs = anchor.getElementsByTagName('INPUT');
-        if (0 < inputs.length) {
-            const input = inputs[0];
-            // setting textContent deletes the INPUT element
-            anchor.textContent = input.value;
-            if (oldCellValue !== input.value) {
+        if (inputBox) {
+            if (oldCellValue !== inputBox.value) {
                 // make an undo action if we actually changed anything
                 const vss = [[oldCellValue]];
                 const thisRow = anchorRow;
                 const thisColumn = anchorColumn;
                 undoable(function() { return putCellsAction(thisRow, thisColumn, vss); });
             }
+            // setting textContent deletes the INPUT element
+            // (on Chrome this also nulls inputBox)
+            anchor.textContent = inputBox.value;
+            inputBox = null;
         }
     }
     function handleInputBlur() {
@@ -475,7 +475,6 @@ function createDataEntryGrid(containerId, rows, columns) {
     function putClipboard(text) {
         const buffer = table.getElementsByClassName('data-entry-grid-copy-paste-buffer')[0];
         buffer.value = text;
-        console.log('copying', text);
         buffer.select();
         buffer.setSelectionRange(0, buffer.value.length);
         document.execCommand('copy');
@@ -493,7 +492,6 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     function paste() {
         const clip = getClipboard();
-        console.log('pasting', clip.length, clip);
         if (clip.length > 0) {
             let values = [];
             const lines = clip.split('\n');
@@ -528,6 +526,36 @@ function createDataEntryGrid(containerId, rows, columns) {
             clearSelection();
             return preventDefault(ev);
         }
+        if (ev.key === 'ArrowUp' && 1 < anchorRow) {
+            commitEdit();
+            setSelection(anchorRow - 1, anchorColumn, anchorRow - 1, anchorColumn);
+            beginEdit();
+            return preventDefault(ev);
+        }
+        if (ev.key === 'ArrowDown' && anchorRow + 1 < rowCount) {
+            commitEdit();
+            setSelection(anchorRow + 1, anchorColumn, anchorRow + 1, anchorColumn);
+            beginEdit();
+            return preventDefault(ev);
+        }
+        const inputNotSelected = inputBox &&
+                inputBox.selectionStart === inputBox.selectionEnd;
+        const inputAtStart = inputNotSelected && inputBox.selectionStart === 0;
+        const inputAtEnd = inputNotSelected && inputBox.selectionStart === inputBox.value.length;
+        if (ev.key === 'ArrowLeft' && 0 < anchorColumn
+                && (!inputBox || inputAtStart)) {
+            commitEdit();
+            setSelection(anchorRow, anchorColumn - 1, anchorRow, anchorColumn - 1);
+            beginEdit();
+            return preventDefault(ev);
+        }
+        if (ev.key === 'ArrowRight' && anchorColumn + 1 < columnCount
+                && (!inputBox || inputAtEnd)) {
+            commitEdit();
+            setSelection(anchorRow, anchorColumn + 1, anchorRow, anchorColumn + 1);
+            beginEdit();
+            return preventDefault(ev);
+        }
     }
     setCellMouseHandlers(1);
     table.onkeydown = tableKeyDownHandler;
@@ -545,7 +573,7 @@ function createDataEntryGrid(containerId, rows, columns) {
             return preventDefault(ev);
         }
     };
-    table.tabIndex = -1;
+    table.tabIndex = 0;
     const copyPasteBuffer = document.createElement('TEXTAREA');
     copyPasteBuffer.classList.add('data-entry-grid-copy-paste-buffer');
     copyPasteBuffer.style.position = 'fixed';
@@ -554,6 +582,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     copyPasteBuffer.style.zIndex = '-1';
     copyPasteBuffer.style.opacity = '0';
     table.appendChild(copyPasteBuffer);
+    table.focus();
     return {
         goToCell: goToCell,
         undo: undo,

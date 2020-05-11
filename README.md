@@ -12,11 +12,12 @@ At the moment, just an HTML proof-of-concept with the following features:
 * Undo and Redo
 * Multiple row and column selections
 * Copy and paste
+* Clearing cells with Delete or Backspace
+* Arrow key navigation
 
 but lacking:
 
-* Clearing cells with Delete or Backspace
-* Arrow key navigation
+* Copy and paste to and from Excel/LibreOffice
 * Multiple row add/delete
 * Localization
   * The only text is in the right-click menu; could use icons?
