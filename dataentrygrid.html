@@ -232,24 +232,20 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     function setSelection(aRow, aColumn, sRow, sColumn) {
         getAnchor().classList.remove('anchor');
-        forEachRow(Math.min(anchorRow, selectionRow),
-                Math.max(anchorRow, selectionRow) + 1, function(row, ii, i) {
-            forEachColumn(row, Math.min(anchorColumn, selectionColumn),
-                    Math.max(anchorColumn, selectionColumn) + 1, function(cell, jj, j) {
+        forEachSelectedRow(function(row, ii, i) {
+            forEachSelectedColumn(row, function(cell, jj, j) {
                 cell.classList.remove('selected');
-            });
-        });
-        forEachRow(Math.min(aRow, sRow),
-                Math.max(aRow, sRow) + 1, function(row, ii, i) {
-            forEachColumn(row, Math.min(aColumn, sColumn),
-                    Math.max(aColumn, sColumn) + 1, function(cell, jj, j) {
-                cell.classList.add('selected');
             });
         });
         anchorRow = aRow;
         anchorColumn = aColumn;
         selectionRow = sRow;
         selectionColumn = sColumn;
+        forEachSelectedRow(function(row, ii, i) {
+            forEachSelectedColumn(row, function(cell, jj, j) {
+                cell.classList.add('selected');
+            });
+        });
         getAnchor().classList.add('anchor');
     }
     function doGoToCell(r,c) {
@@ -303,7 +299,8 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     function rowHeaderMenu(ev, r) {
         let firstRow = r;
-        if (r !== anchorRow) {
+        if ((r < anchorRow && r < selectionRow)
+                || anchorRow < r && selectionRow < r) {
             setSelection(r, 0, r, columnCount - 1);
         }
         const select = document.createElement('SELECT');
@@ -311,16 +308,22 @@ function createDataEntryGrid(containerId, rows, columns) {
         const deleteOption = deleteRowsOption();
         deleteOption.onclick = function() {
             undoable(deleteRows(firstRow, 1));
+            removeContextMenu();
+            table.focus();
         }
         select.appendChild(deleteOption);
         const addBeforeOption = addRowsBeforeOption();
         addBeforeOption.onclick = function() {
             undoable(insertRows(firstRow, 1));
+            removeContextMenu();
+            table.focus();
         }
         select.appendChild(addBeforeOption);
         const addAfterOption = addRowsAfterOption();
         addAfterOption.onclick = function() {
             undoable(insertRows(firstRow + 1, 1));
+            removeContextMenu();
+            table.focus();
         }
         select.appendChild(addAfterOption);
         const mousePosition = getMouseCoordinates(ev);
@@ -345,6 +348,14 @@ function createDataEntryGrid(containerId, rows, columns) {
         for (var i = 0; i !== cEnd; ++i)  {
             callback(cs[columnStart + i], i, columnStart + i);
         }
+    }
+    function forEachSelectedRow(callback) {
+        forEachRow(Math.min(anchorRow, selectionRow),
+                Math.max(anchorRow, selectionRow) + 1, callback);
+    }
+    function forEachSelectedColumn(row, callback) {
+        forEachColumn(row, Math.min(anchorColumn, selectionColumn),
+                Math.max(anchorColumn, selectionColumn) + 1, callback);
     }
     function setCellMouseHandlers(firstRow) {
         forEachRow(firstRow, rowCount, function(row, i, thisRow) {
@@ -435,7 +446,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         undoable(putCellsAction(anchorRow, anchorColumn, empties));
     }
     function getClipboard() {
-        const buffer = table.getElementsById('data-entry-grid-copy-paste-buffer')[0];
+        const buffer = table.getElementsByClassName('data-entry-grid-copy-paste-buffer')[0];
         buffer.select();
         buffer.setSelectionRange(0, buffer.value.length);
         document.execCommand('paste');
@@ -444,22 +455,32 @@ function createDataEntryGrid(containerId, rows, columns) {
     function putClipboard(text) {
         const buffer = table.getElementsByClassName('data-entry-grid-copy-paste-buffer')[0];
         buffer.value = text;
+        console.log('copying', text);
         buffer.select();
         buffer.setSelectionRange(0, buffer.value.length);
         document.execCommand('copy');
     }
     function copySelection() {
-        putClipboard(getCell(anchorRow, anchorColumn));
+        let texts = [];
+        forEachSelectedRow(function(row) {
+            let rowTexts = [];
+            forEachSelectedColumn(row, function(cell) {
+                rowTexts.push(cell.textContent);
+            });
+            texts.push(rowTexts.join('\t'));
+        });
+        putClipboard(texts.join('\n'));
     }
     function paste() {
         const clip = getClipboard();
+        console.log('pasting', clip.length, clip);
         if (clip.length > 0) {
             let values = [];
             const lines = clip.split('\n');
             for (let i = 0; i !== lines.length; ++i) {
                 values.push(lines[i].split('\t'));
             }
-            undoStack(putCellsAction(anchorRow, anchorColumn, values));
+            undoable(putCellsAction(anchorRow, anchorColumn, values));
         }
     }
     function tableKeyDownHandler(ev) {
@@ -502,7 +523,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     };
     table.tabIndex = -1;
     const copyPasteBuffer = document.createElement('TEXTAREA');
-    copyPasteBuffer.id = 'data-entry-grid-copy-paste-buffer';
+    copyPasteBuffer.classList.add('data-entry-grid-copy-paste-buffer');
     copyPasteBuffer.style.position = 'fixed';
     copyPasteBuffer.style.top = '0';
     copyPasteBuffer.style.right = '100%';
