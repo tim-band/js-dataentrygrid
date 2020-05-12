@@ -16,13 +16,15 @@ At the moment, just an HTML proof-of-concept with the following features:
 * Arrow key navigation
 * Starting to type forces the input box to open
 * Copy and paste to and from Excel/LibreOffice
+* Shift-arrows to extend selection
 
 but lacking:
 
 * Multiple row add/delete
-* Shift-arrows to extend selection
 * Hiding the blinking text cursor
-* 'Cut' and 'Copy' sometimes grayed out on Chrome's context menu
+* 'Cut' and 'Copy' sometimes grayed out on Chrome's context menu,
+  because nothing is selected.
+* Home/End/Page up/Page down
 * Localization
   * The only text is in the right-click menu; could use icons?
 * Callbacks to grey your own undo/redo buttons
@@ -32,3 +34,4 @@ but lacking:
   * npm build
   * minification
   * test code!
+  * useful API

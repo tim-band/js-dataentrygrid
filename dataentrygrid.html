@@ -565,7 +565,8 @@ function createDataEntryGrid(containerId, rows, columns) {
             if (ev.key === 'Escape') {
                 table.focus();
             }
-            // surely there must be a better way to do this?
+            // Select context menu option if enter or space pressed.
+            // Surely there must be a better way to do this?
             if (ev.key === 'Enter' || ev.key === ' ') {
                 const index = contextMenu.selectedIndex;
                 if (0 <= index) {
@@ -576,7 +577,8 @@ function createDataEntryGrid(containerId, rows, columns) {
             }
             return;
         }
-        if (ev.ctrlKey || ev.metaKey) {
+        // meta key so that Apple users can press meta-Z for undo.
+        if ((ev.ctrlKey || ev.metaKey) && !ev.altKey) {
             if (ev.keyCode === 90) {
                 if (ev.shiftKey) {
                     redo();
@@ -590,17 +592,28 @@ function createDataEntryGrid(containerId, rows, columns) {
             clearSelection();
             return preventDefault(ev);
         }
+        if (moveSelection(ev) === false) {
+            return preventDefault(ev);
+        }
+        if (moveAnchor(ev) === false) {
+            return preventDefault(ev);
+        }
+    }
+    function moveAnchor(ev) {
+        if (ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) {
+            return;
+        }
         if (ev.key === 'ArrowUp' && 1 < anchorRow) {
             commitEdit();
             setSelection(anchorRow - 1, anchorColumn, anchorRow - 1, anchorColumn);
             beginEdit();
-            return preventDefault(ev);
+            return false;
         }
         if (ev.key === 'ArrowDown' && anchorRow + 1 < rowCount) {
             commitEdit();
             setSelection(anchorRow + 1, anchorColumn, anchorRow + 1, anchorColumn);
             beginEdit();
-            return preventDefault(ev);
+            return false;
         }
         const inputNotSelected = inputBox &&
                 inputBox.selectionStart === inputBox.selectionEnd;
@@ -611,14 +624,35 @@ function createDataEntryGrid(containerId, rows, columns) {
             commitEdit();
             setSelection(anchorRow, anchorColumn - 1, anchorRow, anchorColumn - 1);
             beginEdit();
-            return preventDefault(ev);
+            return false;
         }
         if (ev.key === 'ArrowRight' && anchorColumn + 1 < columnCount
                 && (!inputBox || inputAtEnd)) {
             commitEdit();
             setSelection(anchorRow, anchorColumn + 1, anchorRow, anchorColumn + 1);
             beginEdit();
-            return preventDefault(ev);
+            return false;
+        }
+    }
+    function moveSelection(ev) {
+        if (!ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) {
+            return;
+        }
+        if (ev.key === 'ArrowUp' && 1 < selectionRow) {
+            setSelection(anchorRow, anchorColumn, selectionRow - 1, selectionColumn);
+            return false;
+        }
+        if (ev.key === 'ArrowDown' && selectionRow + 1 < rowCount) {
+            setSelection(anchorRow, anchorColumn, selectionRow + 1, selectionColumn);
+            return false;
+        }
+        if (ev.key === 'ArrowLeft' && 0 < selectionColumn) {
+            setSelection(anchorRow, anchorColumn, selectionRow, selectionColumn - 1);
+            return false;
+        }
+        if (ev.key === 'ArrowRight' && selectionColumn + 1 < columnCount) {
+            setSelection(anchorRow, anchorColumn, selectionRow, selectionColumn + 1);
+            return false;
         }
     }
     setCellMouseHandlers(1);
