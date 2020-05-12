@@ -142,19 +142,25 @@ function createDataEntryGrid(containerId, rows, columns) {
         inputBox.focus();
     }
     function commitEdit() {
-        const anchor = getAnchor();
         if (inputBox) {
+            const anchor = getAnchor();
             if (oldCellValue !== inputBox.value) {
                 // make an undo action if we actually changed anything
                 const vss = [[oldCellValue]];
                 const thisRow = anchorRow;
                 const thisColumn = anchorColumn;
-                undoable(function() { return putCellsAction(thisRow, thisColumn, vss); });
+                undoable(function() {
+                    return putCellsAction(thisRow, thisRow + 1,
+                            thisColumn, thisColumn + 1, vss);
+                });
             }
-            // setting textContent deletes the INPUT element
-            // (on Chrome this also nulls inputBox)
-            anchor.textContent = inputBox.value;
+            // Chrome blurs the input box when the textContent is set,
+            // causing commitEdit() to be called again, so we must
+            // make sure we do not cause another undo event.
+            const newValue = inputBox.value;
             inputBox = null;
+            // setting textContent deletes the INPUT element
+            anchor.textContent = newValue;
         }
     }
     function handleInputBlur() {
@@ -470,7 +476,12 @@ function createDataEntryGrid(containerId, rows, columns) {
         forEachSelectedRow(function(row) {
             let rowTexts = [];
             forEachSelectedColumn(row, function(cell) {
-                rowTexts.push(cell.textContent);
+                const inputs = cell.getElementsByTagName('INPUT');
+                if (0 < inputs.length) {
+                    rowTexts.push(inputs[0].value)
+                } else {
+                    rowTexts.push(cell.textContent);
+                }
             });
             texts.push(rowTexts.join('\t'));
         });
@@ -538,6 +549,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         const text = copySelection();
         ev.clipboardData.setData('text/plain', text);
         clearSelection();
+        table.focus(); // seems necessary on Firefox
         return preventDefault(ev);
     }
     function tableCopyHandler(ev) {
@@ -557,6 +569,7 @@ function createDataEntryGrid(containerId, rows, columns) {
                 console.log(err);
             }
         }
+        table.focus(); // seems necessary on Firefox
         return preventDefault(ev);
     }
     function tableKeyDownHandler(ev) {
@@ -623,6 +636,7 @@ function createDataEntryGrid(containerId, rows, columns) {
                 && (!inputBox || inputAtStart)) {
             commitEdit();
             setSelection(anchorRow, anchorColumn - 1, anchorRow, anchorColumn - 1);
+            returnColumn = anchorColumn;
             beginEdit();
             return false;
         }
@@ -630,6 +644,7 @@ function createDataEntryGrid(containerId, rows, columns) {
                 && (!inputBox || inputAtEnd)) {
             commitEdit();
             setSelection(anchorRow, anchorColumn + 1, anchorRow, anchorColumn + 1);
+            returnColumn = anchorColumn;
             beginEdit();
             return false;
         }
