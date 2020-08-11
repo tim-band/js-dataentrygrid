@@ -1,0 +1,42 @@
+{
+  "name": "js-dataentrygrid",
+  "version": "1.0.0",
+  "description": "A minimalist, no-dependency 2D grid for data input",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tim-band/js-dataentrygrid.git"
+  },
+  "keywords": [
+    "data",
+    "grid",
+    "entry",
+    "data-grid",
+    "table",
+    "editor",
+    "grid-editor",
+    "data-table",
+    "tabular-data",
+    "edit-cell",
+    "editable-table"
+  ],
+  "author": "Tim Band",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/tim-band/js-dataentrygrid/issues"
+  },
+  "homepage": "https://github.com/tim-band/js-dataentrygrid#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "^8.0.1",
+    "@babel/cli": "7.10.1",
+    "@babel/core": "7.10.2",
+    "@babel/generator": "7.10.2",
+    "@babel/preset-env": "7.10.2",
+    "babel-plugin-minify-mangle-names": "0.5.0",
+    "zombie": "6.1.4"
+  }
+}
