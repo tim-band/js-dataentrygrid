@@ -702,15 +702,22 @@ function createDataEntryGrid(containerId, rows, columns) {
     table.appendChild(copyPasteBuffer);
     table.focus();
     return {
+        getSelection: function() { return {
+            anchorRow: anchorRow,
+            anchorColumn: anchorColumn,
+            selectionRow: selectionRow,
+            selectionColumn: selectionColumn
+        };},
         goToCell: goToCell,
+        getCells: getCells,
+        putCells: putCells,
         undo: undo,
         redo: redo
     };
 };
-var dataEntryGrid;
 </script>
 </head>
-<body onload="dataEntryGrid = createDataEntryGrid('input',3,3)">
+<body onload="window.dataEntryGrid = createDataEntryGrid('input',3,3)">
     <table id='input' class='data-entry-grid'>
         <thead>
             <tr>
