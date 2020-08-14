@@ -121,7 +121,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         return true;
     }
     function beginEdit() {
-        inputBox = document.createElement('INPUT');
+        const box = document.createElement('INPUT');
         let maxLength = 3;
         forEachRow(1, rowCount, function(row) {
             forEachColumn(row, anchorColumn, anchorColumn+1, function(cell) {
@@ -131,20 +131,24 @@ function createDataEntryGrid(containerId, rows, columns) {
                 }
             });
         });
-        inputBox.setAttribute('size', maxLength - 2);
+        box.setAttribute('size', maxLength - 2);
         const anchor = getAnchor();
-        oldCellValue = inputBox.value = anchor.textContent;
+        oldCellValue = box.value = anchor.textContent;
         anchor.textContent = '';
-        anchor.appendChild(inputBox);
-        inputBox.onkeydown = handleInputKey;
-        inputBox.onblur = handleInputBlur;
-        inputBox.setSelectionRange(0, inputBox.value.length);
-        inputBox.focus();
+        anchor.appendChild(box);
+        box.onkeydown = handleInputKey;
+        box.onblur = function() {
+            commitEdit(box);
+            table.focus();
+        }
+        box.setSelectionRange(0, box.value.length);
+        box.focus();
+        inputBox = box;
     }
-    function commitEdit() {
-        if (inputBox) {
+    function commitEdit(box) {
+        if (inputBox && inputBox === box) {
             const anchor = getAnchor();
-            if (oldCellValue !== inputBox.value) {
+            if (oldCellValue !== box.value) {
                 // make an undo action if we actually changed anything
                 const vss = [[oldCellValue]];
                 const thisRow = anchorRow;
@@ -157,15 +161,11 @@ function createDataEntryGrid(containerId, rows, columns) {
             // Chrome blurs the input box when the textContent is set,
             // causing commitEdit() to be called again, so we must
             // make sure we do not cause another undo event.
-            const newValue = inputBox.value;
+            const newValue = box.value;
             inputBox = null;
             // setting textContent deletes the INPUT element
             anchor.textContent = newValue;
         }
-    }
-    function handleInputBlur() {
-        commitEdit();
-        table.focus();
     }
     function getTbody() {
         const tbodies = table.getElementsByTagName('TBODY');
@@ -209,7 +209,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         };
     }
     function deleteRows(r, count) {
-        commitEdit();
+        commitEdit(inputBox);
         const values = getCells(r, r+count, 0, columnCount);
         const tbody = getTbody();
         for (i = 0; i !== count; ++i) {
@@ -265,7 +265,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         getAnchor().classList.add('anchor');
     }
     function doGoToCell(r,c) {
-        commitEdit();
+        commitEdit(inputBox);
         getAnchor().classList.remove('anchor');
         if (r < 0 || rowCount <= r
                 || c < 0 || columnCount <= c) {
@@ -436,14 +436,14 @@ function createDataEntryGrid(containerId, rows, columns) {
         return function() { return putCellsAction(rowStart, rowEnd, columnStart, columnEnd, oldValues) };
     }
     function redo() {
-        commitEdit();
+        commitEdit(inputBox);
         if (0 < redoStack.length) {
             const action = redoStack.pop();
             undoStack.push(action());
         }
     }
     function undo() {
-        commitEdit();
+        commitEdit(inputBox);
         if (0 < undoStack.length) {
             const action = undoStack.pop();
             redoStack.push(action());
@@ -617,13 +617,13 @@ function createDataEntryGrid(containerId, rows, columns) {
             return;
         }
         if (ev.key === 'ArrowUp' && 1 < anchorRow) {
-            commitEdit();
+            commitEdit(inputBox);
             setSelection(anchorRow - 1, anchorColumn, anchorRow - 1, anchorColumn);
             beginEdit();
             return false;
         }
         if (ev.key === 'ArrowDown' && anchorRow + 1 < rowCount) {
-            commitEdit();
+            commitEdit(inputBox);
             setSelection(anchorRow + 1, anchorColumn, anchorRow + 1, anchorColumn);
             beginEdit();
             return false;
@@ -634,7 +634,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         const inputAtEnd = inputNotSelected && inputBox.selectionStart === inputBox.value.length;
         if (ev.key === 'ArrowLeft' && 0 < anchorColumn
                 && (!inputBox || inputAtStart)) {
-            commitEdit();
+            commitEdit(inputBox);
             setSelection(anchorRow, anchorColumn - 1, anchorRow, anchorColumn - 1);
             returnColumn = anchorColumn;
             beginEdit();
@@ -642,7 +642,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         }
         if (ev.key === 'ArrowRight' && anchorColumn + 1 < columnCount
                 && (!inputBox || inputAtEnd)) {
-            commitEdit();
+            commitEdit(inputBox);
             setSelection(anchorRow, anchorColumn + 1, anchorRow, anchorColumn + 1);
             returnColumn = anchorColumn;
             beginEdit();
@@ -708,6 +708,8 @@ function createDataEntryGrid(containerId, rows, columns) {
             selectionRow: selectionRow,
             selectionColumn: selectionColumn
         };},
+        rowCount: function() { return rowCount },
+        columnCount: function() { return columnCount },
         goToCell: goToCell,
         getCells: getCells,
         putCells: putCells,

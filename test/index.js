@@ -11,7 +11,7 @@ describe('dataentrygrid', function () {
   const browser = new Browser();
   let server = null;
 
-  before(function (done) {
+  before(async function () {
     server = http.createServer(function(req, resp) {
       fs.readFile("./test" + req.url, function(error, content) {
         let code = 200;
@@ -28,18 +28,15 @@ describe('dataentrygrid', function () {
         resp.end(content, "utf-8");
       });
     }).listen(3004);
-    browser.visit("http://localhost:3004/dataentrygrid.html", done);
-  });
-
-  it('does something', async function () {
-    await browser.assert.text(".anchor", "1");
+    await browser.visit("http://localhost:3004/dataentrygrid.html");
   });
 
   describe('highlight (visual and API)', function () {
+
     it('can be set with a mouse click', async function() {
       const row = 0;
       const column = 1;
-      await browser.click(cellSelector(row, column));
+      await clickCell(browser, row, column);
       // visual selection
       browser.assert.hasClass(cellSelector(row, column), 'anchor');
       browser.assert.hasClass(cellSelector(row, column), 'selected');
@@ -50,6 +47,7 @@ describe('dataentrygrid', function () {
       assert.equal(sel.selectionRow, row);
       assert.equal(sel.selectionColumn, column);
     });
+
     it('can be set with a mouse drag', async function() {
       const startRow = 1;
       const startColumn = 1;
@@ -57,37 +55,39 @@ describe('dataentrygrid', function () {
       const endColumn = 2;
       await mouseDragCells(browser,
         [[startRow,startColumn], [0,1], [endRow,endColumn]]);
-      // visual selection
-      browser.assert.hasClass(cellSelector(1,1), 'anchor');
-      const minR = Math.min(startRow, endRow);
-      const maxR = Math.max(startRow, endRow);
-      const minC = Math.min(startColumn, endColumn);
-      const maxC = Math.max(startColumn, endColumn);
-      for (let r = 0; r <= 1; ++r) {
-        for (let c = 0; c <= 2; ++c) {
-          if (minR <= r && r <= maxR && minC <= c && c <= maxC) {
-            browser.assert.hasClass(cellSelector(r,c), 'selected');
-          } else {
-            browser.assert.hasNoClass(cellSelector(r,c), 'selected');
-          }
-          if (r === startRow && c === startColumn) {
-            browser.assert.hasClass(cellSelector(r,c), 'anchor');
-          } else {
-            browser.assert.hasNoClass(cellSelector(r,c), 'anchor');
-          }
-        }
-      }
-      // API selection
-      const sel = await getSelection(browser);
-      assert.equal(sel.anchorRow, startRow);
-      assert.equal(sel.anchorColumn, startColumn);
-      assert.equal(sel.selectionRow, endRow);
-      assert.equal(sel.selectionColumn, endColumn);
+      await checkSelection(browser, startRow, endRow, startColumn, endColumn);
     });
+
     it('moves with the cursor keys', async function() {
+      await clickCell(browser, 1, 1);
+      const table = await browser.querySelector('#input');
+      await sendKeys(browser, table, ['ArrowUp']);
+      await checkSelection(browser, 0, 0, 1, 1);
+      await sendKeys(browser, table, ['ArrowLeft', 'ArrowLeft']);
+      await checkSelection(browser, 0, 0, 0, 0);
+      await sendKeys(browser, table, ['ArrowDown']);
+      await checkSelection(browser, 1, 1, 0, 0);
+      await sendKeys(browser, table, ['ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight']);
+      await checkSelection(browser, 1, 1, 1, 1);
     });
+
     it('does not move off the ends', async function() {
+      await clickCell(browser, 1, 1);
+      const table = await browser.querySelector('#input');
+      await sendKeys(browser, table, ['ArrowUp', 'ArrowUp', 'ArrowUp']);
+      await checkSelection(browser, 0, 0, 1, 1);
+      await sendKeys(browser, table, ['ArrowLeft', 'ArrowLeft', 'ArrowLeft']);
+      await checkSelection(browser, 0, 0, 0, 0);
+      const rc = await getRowCount(browser);
+      const downs = Array(2 + 2 * rc).fill('ArrowDown');
+      await sendKeys(browser, table, downs);
+      await checkSelection(browser, rc-1, rc-1, 0, 0);
+      const cc = await getColumnCount(browser);
+      const rights = Array(2 + 2 * cc).fill('ArrowRight');
+      await sendKeys(browser, table, rights);
+      await checkSelection(browser, rc-1, rc-1, cc-1, cc-1);
     });
+
     it('gets extended with shift-arrows', async function() {
     });
     it('does not extend past the ends', async function() {
@@ -147,6 +147,61 @@ describe('dataentrygrid', function () {
   });
 });
 
+async function sendKeys(browser, table, keys) {
+  for (const i in keys) {
+    const keydown = await new browser.window.KeyboardEvent('keydown', {
+      key: keys[i]
+    });
+    const keypress = await new browser.window.KeyboardEvent('keypress', {
+      key: keys[i]
+    });
+    await table.dispatchEvent(keydown);
+    await table.dispatchEvent(keypress);
+    }
+}
+
+async function checkSelection(browser, startRow, endRow, startColumn, endColumn) {
+  // API selection
+  const sel = await getSelection(browser);
+  console.log(sel);
+  console.log(startRow, startColumn, endRow, endColumn);
+  assert.equal(sel.anchorRow, startRow);
+  assert.equal(sel.anchorColumn, startColumn);
+  assert.equal(sel.selectionRow, endRow);
+  assert.equal(sel.selectionColumn, endColumn);
+  // visual selection
+  const minR = Math.min(startRow, endRow);
+  const maxR = Math.max(startRow, endRow);
+  const minC = Math.min(startColumn, endColumn);
+  const maxC = Math.max(startColumn, endColumn);
+  const rowCount = await getRowCount(browser);
+  const columnCount = await getColumnCount(browser);
+  for (let r = 0; r !== rowCount; ++r) {
+    for (let c = 0; c !== columnCount; ++c) {
+      if (minR <= r && r <= maxR && minC <= c && c <= maxC) {
+        browser.assert.hasClass(cellSelector(r, c), 'selected',
+          '('+r+','+c+') should have been selected');
+      }
+      else {
+        browser.assert.hasNoClass(cellSelector(r, c), 'selected',
+          '('+r+','+c+') should not have been selected');
+      }
+      if (r === startRow && c === startColumn) {
+        browser.assert.hasClass(cellSelector(r, c), 'anchor',
+          '('+r+','+c+') should have been the anchor');
+      }
+      else {
+        browser.assert.hasNoClass(cellSelector(r, c), 'anchor',
+          '('+r+','+c+') should not have been the anchor');
+      }
+    }
+  }
+}
+
+async function clickCell(browser, row, column) {
+  await browser.click(cellSelector(row, column));
+}
+
 async function getSelection(browser) {
   const sel = await browser.evaluate('window.dataEntryGrid.getSelection();');
   // columns are zero-based but rows are one-based;
@@ -154,6 +209,16 @@ async function getSelection(browser) {
   sel.anchorRow -= 1;
   sel.selectionRow -= 1;
   return sel;
+}
+
+async function getRowCount(browser) {
+  // columns are zero-based but rows are one-based;
+  // this should be corrected.
+  return await browser.evaluate('window.dataEntryGrid.rowCount();') - 1;
+}
+
+async function getColumnCount(browser) {
+  return await await browser.evaluate('window.dataEntryGrid.columnCount();');
 }
 
 async function mouseDragCells(browser, coords) {
