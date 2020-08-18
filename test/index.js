@@ -37,15 +37,7 @@ describe('dataentrygrid', function () {
       const row = 0;
       const column = 1;
       await clickCell(browser, row, column);
-      // visual selection
-      browser.assert.hasClass(cellSelector(row, column), 'anchor');
-      browser.assert.hasClass(cellSelector(row, column), 'selected');
-      // API selection
-      const sel = await getSelection(browser);
-      assert.equal(sel.anchorRow, row);
-      assert.equal(sel.anchorColumn, column);
-      assert.equal(sel.selectionRow, row);
-      assert.equal(sel.selectionColumn, column);
+      await checkSelection(browser, row, row, column, column);
     });
 
     it('can be set with a mouse drag', async function() {
@@ -163,8 +155,6 @@ async function sendKeys(browser, table, keys) {
 async function checkSelection(browser, startRow, endRow, startColumn, endColumn) {
   // API selection
   const sel = await getSelection(browser);
-  console.log(sel);
-  console.log(startRow, startColumn, endRow, endColumn);
   assert.equal(sel.anchorRow, startRow);
   assert.equal(sel.anchorColumn, startColumn);
   assert.equal(sel.selectionRow, endRow);
