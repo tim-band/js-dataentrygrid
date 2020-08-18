@@ -37,6 +37,6 @@
     "@babel/preset-env": "7.10.2",
     "babel-plugin-minify-mangle-names": "0.5.0",
     "mocha": "^8.1.1",
-    "zombie": "6.1.4"
+    "selenium-webdriver": "4.0.0-alpha.7"
   }
 }
