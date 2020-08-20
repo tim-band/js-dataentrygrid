@@ -58,6 +58,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     var inputBox = null;
     var contextMenu = null;
     var table = document.getElementById(containerId); // while we aren't creating our own table
+    // undoable(myAction()) pushes the inverse action onto the undo stack
     function undoable(action) {
         undoStack.push(action);
         redoStack = [];
@@ -365,14 +366,14 @@ function createDataEntryGrid(containerId, rows, columns) {
     function forEachRow(rowStart, rowEnd, callback) {
         const rows = table.getElementsByTagName('TR');
         const rEnd = (rows.length < rowEnd? rows.length : rowEnd) - rowStart;
-        for (var i = 0; i !== rEnd; ++i) {
+        for (var i = 0; i < rEnd; ++i) {
             callback(rows[rowStart + i], i, rowStart + i);
         }
     }
     function forEachColumn(row, columnStart, columnEnd, callback) {
         const cs = row.getElementsByTagName('TD');
         let cEnd = (cs.length < columnEnd? cs.length : columnEnd) - columnStart;
-        for (var i = 0; i !== cEnd; ++i)  {
+        for (var i = 0; i < cEnd; ++i)  {
             callback(cs[columnStart + i], i, columnStart + i);
         }
     }
@@ -442,6 +443,8 @@ function createDataEntryGrid(containerId, rows, columns) {
             });
         });
     }
+    // an 'action' is a function that returns its inverse (which is also an action
+    // and so returns a function that is the equivalent of the original action)
     function putCellsAction(rowStart, rowEnd, columnStart, columnEnd, values) {
         const oldValues = getCells(rowStart, rowEnd, columnStart, columnEnd);
         putCells(rowStart, rowEnd, columnStart, columnEnd, values);
@@ -460,6 +463,10 @@ function createDataEntryGrid(containerId, rows, columns) {
             const action = undoStack.pop();
             redoStack.push(action());
         }
+    }
+    function clearUndo() {
+        redoStack = [];
+        undoStack = [];
     }
     function clearSelection() {
         const firstRow = Math.min(anchorRow, selectionRow);
@@ -725,7 +732,9 @@ function createDataEntryGrid(containerId, rows, columns) {
         getColumnHeaders: getColumnHeaders,
         goToCell: goToCell,
         getCells: getCells,
-        putCells: putCells,
+        putCells: function(startRow, endRow, startColumn, endColumn, values) {
+            undoable(putCellsAction(startRow, endRow, startColumn, endColumn, values));
+        },
         undo: undo,
         redo: redo
     };
