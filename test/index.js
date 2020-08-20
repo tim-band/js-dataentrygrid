@@ -200,6 +200,31 @@ describe('dataentrygrid', function () {
       const actual = await getCells(driver, 0, 2, 0, 2);
       assert.deepEqual(actual, rows, 'cell text did not match pasted text');
     });
+
+    it('can be restored with undo and redo', async function() {
+      const rows = [['23.4', '43.1'], ['0.123', '55']];
+      await putCells(driver, 0, 2, 0, 2, rows);
+      await clickCell(driver, 0, 0);
+      const c0 = '654';
+      await table.sendKeys(c0);
+      const c1 = '876';
+      await clickCell(driver, 1, 1);
+      await table.sendKeys(c1, Key.RETURN);
+      await assertCellContents(driver, 0, 0, c0);
+      await assertCellContents(driver, 1, 1, c1);
+      await table.sendKeys(Key.CONTROL, 'z');
+      await assertCellContents(driver, 0, 0, c0);
+      await assertCellContents(driver, 1, 1, rows[1][1]);
+      await table.sendKeys(Key.CONTROL, 'z');
+      await assertCellContents(driver, 0, 0, rows[0][0]);
+      await assertCellContents(driver, 1, 1, rows[1][1]);
+      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await assertCellContents(driver, 0, 0, c0);
+      await assertCellContents(driver, 1, 1, rows[1][1]);
+      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await assertCellContents(driver, 0, 0, c0);
+      await assertCellContents(driver, 1, 1, c1);
+    });
   });
 
   describe('column headers', function() {
@@ -324,7 +349,7 @@ async function putCells(driver, startRow, endRow, startColumn, endColumn, rows) 
   // columns are zero-based but rows are one-based;
   // this should be corrected.
   await driver.executeScript(
-    `window.dataEntryGrid.getCells(${startRow+1}, ${endRow+1},
+    `window.dataEntryGrid.putCells(${startRow+1}, ${endRow+1},
       ${startColumn}, ${endColumn}, ${JSON.stringify(rows)});`);
 }
 
