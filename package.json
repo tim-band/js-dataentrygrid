@@ -37,6 +37,7 @@
     "@babel/preset-env": "7.10.2",
     "babel-plugin-minify-mangle-names": "0.5.0",
     "mocha": "^8.1.1",
-    "selenium-webdriver": "4.0.0-alpha.7"
+    "selenium-webdriver": "4.0.0-alpha.7",
+    "clipboardy": "2.3.0"
   }
 }

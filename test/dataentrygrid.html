@@ -71,6 +71,18 @@ function createDataEntryGrid(containerId, rows, columns) {
     function getAnchor() {
         return getCell(anchorRow, anchorColumn);
     }
+    function getColumnHeaders() {
+        var thead = table.getElementsByTagName('THEAD');
+        if (thead.length === 0) {
+            return [];
+        }
+        var ths = thead[0].getElementsByTagName('TH');
+        var headers = [];
+        for (var i = 1; i !== ths.length; ++i) {
+            headers.push(ths[i].textContent);
+        }
+        return headers;
+    }
     function removeContextMenu() {
         if (contextMenu) {
             table.removeChild(contextMenu);
@@ -710,6 +722,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         };},
         rowCount: function() { return rowCount },
         columnCount: function() { return columnCount },
+        getColumnHeaders: getColumnHeaders,
         goToCell: goToCell,
         getCells: getCells,
         putCells: putCells,

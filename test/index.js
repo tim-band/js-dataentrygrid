@@ -5,9 +5,7 @@ const assert = require('assert');
 const { Builder, By, Key, until } = require('selenium-webdriver');
 const http = require('http');
 const fs = require('fs');
-const { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } = require('constants');
-const { exit } = require('process');
-const { table } = require('console');
+const clipboardy = require("clipboardy");
 
 describe('dataentrygrid', function () {
   let server = null;
@@ -170,24 +168,46 @@ describe('dataentrygrid', function () {
     });
 
     it('can be copied to the clipboard', async function() {
+      const rows = [['23.4', '43.1'], ['0.123', '55']];
+      await putCells(driver, 0, 2, 0, 2, rows);
+      await clickCell(driver, 0, 0);
+      await table.sendKeys(Key.SHIFT, Key.RIGHT, Key.DOWN);
+      await table.sendKeys(Key.CONTROL, 'c');
+      const copied = clipboardy.readSync();
+      const expected = cellsToText(rows);
+      assert.strictEqual(copied, expected, 'clipboard text did not match entered text after copy');
     });
+
     it('can be cut', async function() {
+      const rows = [['5.6', '12.8'], ['23', '99.01']];
+      await putCells(driver, 0, 2, 0, 2, rows);
+      await clickCell(driver, 0, 0);
+      await table.sendKeys(Key.SHIFT, Key.RIGHT, Key.DOWN);
+      await table.sendKeys(Key.CONTROL, 'x');
+      const copied = clipboardy.readSync();
+      const expected = cellsToText(rows);
+      assert.strictEqual(copied, expected, 'clipboard text did not match entered text after cut');
+      await assertCellContents(driver, 0, 0, '');
+      await assertCellContents(driver, 0, 1, '');
+      await assertCellContents(driver, 1, 0, '');
+      await assertCellContents(driver, 1, 1, '');
     });
+
     it('can be pasted', async function() {
+      const rows = [['6', '48.3'], ['30', '12.1']];
+      clipboardy.writeSync(cellsToText(rows));
+      await clickCell(driver, 0, 0);
+      const actual = await getCells(driver, 0, 2, 0, 2);
+      assert.deepEqual(actual, rows, 'cell text did not match pasted text');
     });
   });
 
-  describe('top header', function() {
+  describe('column headers', function() {
     it('can be set via the API', async function() {
     });
     it('can be read via the API', async function() {
-    });
-  });
-
-  describe('left header', function() {
-    it('can be set via the API', async function() {
-    });
-    it('can be read via the API', async function() {
+      const headers = await getColumnHeaders(driver);
+      assert.deepEqual(headers, ['One', 'Two', 'Three']);
     });
   });
 
@@ -199,16 +219,11 @@ describe('dataentrygrid', function () {
     it('are automatically added as required', async function() {
     });
   });
-
-  describe('', function() {
-    it('', async function() {
-    });
-    it('', async function() {
-    });
-    it('', async function() {
-    });
-  });
 });
+
+function cellsToText(rows) {
+  return rows.map(row => row.join('\t')).join('\n');
+}
 
 async function assertCellContents(driver, row, column, expectedContents) {
   // assert that the cell is reported as expected
@@ -311,6 +326,10 @@ async function putCells(driver, startRow, endRow, startColumn, endColumn, rows) 
   await driver.executeScript(
     `window.dataEntryGrid.getCells(${startRow+1}, ${endRow+1},
       ${startColumn}, ${endColumn}, ${JSON.stringify(rows)});`);
+}
+
+async function getColumnHeaders(driver) {
+  return await driver.executeScript('return window.dataEntryGrid.getColumnHeaders();');
 }
 
 async function mouseDragCells(driver, coords) {
