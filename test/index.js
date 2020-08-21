@@ -122,6 +122,7 @@ describe('dataentrygrid', function () {
     let table = null;
 
     before(async function () {
+      await driver.get("http://localhost:3004/dataentrygrid.html");
       table = await getTable(driver);
     });
 
@@ -197,6 +198,7 @@ describe('dataentrygrid', function () {
       const rows = [['6', '48.3'], ['30', '12.1']];
       clipboardy.writeSync(cellsToText(rows));
       await clickCell(driver, 0, 0);
+      await table.sendKeys(Key.CONTROL, 'v');
       const actual = await getCells(driver, 0, 2, 0, 2);
       assert.deepEqual(actual, rows, 'cell text did not match pasted text');
     });
@@ -209,7 +211,7 @@ describe('dataentrygrid', function () {
       await table.sendKeys(c0);
       const c1 = '876';
       await clickCell(driver, 1, 1);
-      await table.sendKeys(c1, Key.RETURN);
+      await table.sendKeys(c1, Key.TAB);
       await assertCellContents(driver, 0, 0, c0);
       await assertCellContents(driver, 1, 1, c1);
       await table.sendKeys(Key.CONTROL, 'z');
@@ -251,13 +253,23 @@ function cellsToText(rows) {
 }
 
 async function assertCellContents(driver, row, column, expectedContents) {
+  const r = Number(row);
+  const c = Number(column);
   // assert that the cell is reported as expected
-  const rows = await getCells(driver, row, row + 1, column, column + 1);
-  assert.strictEqual(rows[0][0], expectedContents, 'reported text not as expected');
+  const rows = await getCells(driver, r, r + 1, c, c + 1);
+  assert.strictEqual(rows[0][0], ''+expectedContents, 'reported text not as expected');
   // assert that the cell looks as expected
-  const cell = await getCell(driver, row, column);
-  const text = await cell.getText();
-  assert.strictEqual(text, expectedContents, 'visible text not as expected');
+  const cell = await getCell(driver, r, c);
+  const text = await getText(cell);
+  assert.strictEqual(text, ''+expectedContents, 'visible text not as expected');
+}
+
+async function getText(cell) {
+  const inputs = await cell.findElements(By.tagName('input'));
+  if (inputs.length === 0) {
+    return await cell.getText();
+  }
+  return await inputs[0].getAttribute('value');
 }
 
 async function repeatKey(element, times, key, modifier) {
