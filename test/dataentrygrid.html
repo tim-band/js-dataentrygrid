@@ -56,13 +56,15 @@ function createDataEntryGrid(containerId, rows, columns) {
     var redoStack = [];
     var inputBox = null;
     var contextMenu = null;
-    function noop() {}
+    function noop() { return null; }
     var commitEdit = noop;
     var table = document.getElementById(containerId); // while we aren't creating our own table
     // undoable(myAction()) pushes the inverse action onto the undo stack
     function undoable(action) {
-        undoStack.push(action);
-        redoStack = [];
+        if (action !== null) {
+            undoStack.push(action);
+            redoStack = [];
+        }
     }
     function getRow(r) {
         return table.getElementsByTagName('TR')[r];
@@ -153,7 +155,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         box.value = text;
         cell.textContent = '';
         cell.appendChild(box);
-        commitEdit = function() { doCommitEdit(r, c, box, text); }
+        commitEdit = function() { return doCommitEdit(r, c, box, text); }
         box.onkeydown = handleInputKey;
         box.onblur = function() {
             doCommitEdit(r, c, box, text);
@@ -164,16 +166,17 @@ function createDataEntryGrid(containerId, rows, columns) {
         inputBox = box;
     }
     function doCommitEdit(row, column, box, oldValue) {
-        var newValue = box.value;
-        if (box.parentNode !== null) {
-            if (oldValue === newValue) {
-                putCells(row, row+1, column, column+1, [[oldValue]]);
-            } else {
-                undoable(putCellsAction(row, row+1, column, column+1, [[newValue]]));
-            }
-        }
         inputBox = null;
         commitEdit = noop;
+        var newValue = box.value;
+        if (box.parentNode === null) {
+            return null;
+        }
+        putCells(row, row+1, column, column+1, [[newValue]]);
+        if (oldValue === newValue) {
+            return null;
+        }
+        return function() { return putCellsAction(row, row+1, column, column+1, [[oldValue]]) };
     }
     function getTbody() {
         const tbodies = table.getElementsByTagName('TBODY');
@@ -183,7 +186,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         return tbodies[0];
     }
     function insertRows(r, count) {
-        commitEdit();
+        undoable(commitEdit());
         const tbody = getTbody();
         const insertFunction = r < rowCount?
             function(child) { tbody.insertBefore(child, getRow(r)); }
@@ -217,7 +220,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         };
     }
     function deleteRows(r, count) {
-        commitEdit();
+        undoable(commitEdit());
         const values = getCells(r, r+count, 0, columnCount);
         const tbody = getTbody();
         for (i = 0; i !== count; ++i) {
@@ -273,7 +276,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         getAnchor().classList.add('anchor');
     }
     function doGoToCell(r,c) {
-        commitEdit();
+        undoable(commitEdit());
         getAnchor().classList.remove('anchor');
         if (r < 0 || rowCount <= r
                 || c < 0 || columnCount <= c) {
@@ -409,7 +412,7 @@ function createDataEntryGrid(containerId, rows, columns) {
                         ev = getEvent(ev);
                         // set anchor and selection to this cell
                         if (ev.button === 0) {
-                            commitEdit();
+                            undoable(commitEdit());
                             setSelection(thisRow, thisColumn, thisRow, thisColumn);
                             table.focus();
                             return preventDefault(ev);
@@ -453,15 +456,19 @@ function createDataEntryGrid(containerId, rows, columns) {
     function redo() {
         commitEdit();
         if (0 < redoStack.length) {
-            const action = redoStack.pop();
-            undoStack.push(action());
+            const action = redoStack.pop()();
+            if (action !== null) {
+                undoStack.push(action);
+            }
         }
     }
     function undo() {
-        commitEdit();
+        undoable(commitEdit());
         if (0 < undoStack.length) {
-            const action = undoStack.pop();
-            redoStack.push(action());
+            const action = undoStack.pop()();
+            if (action !== null) {
+                redoStack.push(action);
+            }
         }
     }
     function clearUndo() {
@@ -636,13 +643,13 @@ function createDataEntryGrid(containerId, rows, columns) {
             return;
         }
         if (ev.key === 'ArrowUp' && 1 < anchorRow) {
-            commitEdit();
+            undoable(commitEdit());
             setSelection(anchorRow - 1, anchorColumn, anchorRow - 1, anchorColumn);
             beginEdit();
             return false;
         }
         if (ev.key === 'ArrowDown' && anchorRow + 1 < rowCount) {
-            commitEdit();
+            undoable(commitEdit());
             setSelection(anchorRow + 1, anchorColumn, anchorRow + 1, anchorColumn);
             beginEdit();
             return false;
@@ -653,7 +660,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         const inputAtEnd = inputNotSelected && inputBox.selectionStart === inputBox.value.length;
         if (ev.key === 'ArrowLeft' && 0 < anchorColumn
                 && (!inputBox || inputAtStart)) {
-            commitEdit();
+            undoable(commitEdit());
             setSelection(anchorRow, anchorColumn - 1, anchorRow, anchorColumn - 1);
             returnColumn = anchorColumn;
             beginEdit();
@@ -661,7 +668,7 @@ function createDataEntryGrid(containerId, rows, columns) {
         }
         if (ev.key === 'ArrowRight' && anchorColumn + 1 < columnCount
                 && (!inputBox || inputAtEnd)) {
-            commitEdit();
+            undoable(commitEdit());
             setSelection(anchorRow, anchorColumn + 1, anchorRow, anchorColumn + 1);
             returnColumn = anchorColumn;
             beginEdit();
