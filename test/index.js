@@ -227,6 +227,54 @@ describe('dataentrygrid', function () {
       await assertCellContents(driver, 0, 0, c0);
       await assertCellContents(driver, 1, 1, c1);
     });
+
+    it('can undo input box typing', async function() {
+      const rows = [['5.06']];
+      await putCells(driver, 0, 1, 0, 1, rows);
+      await clickCell(driver, 0, 0);
+      const c0 = '654';
+      await table.sendKeys(c0);
+      await table.sendKeys(Key.CONTROL, 'z');
+      await assertCellContents(driver, 0, 0, rows[0][0]);
+      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await assertCellContents(driver, 0, 0, c0);
+      await table.sendKeys(Key.CONTROL, 'z');
+      await assertCellContents(driver, 0, 0, rows[0][0]);
+    });
+
+    it('withstands undo and redo off the end of the stacks', async function() {
+      const rows = [['23.4', '43.1'], ['0.123', '55']];
+      await putCells(driver, 0, 2, 0, 2, rows);
+      await clearUndo(driver);
+      await clickCell(driver, 0, 0);
+      const c0 = '654';
+      await table.sendKeys(c0);
+      const c1 = '876';
+      await clickCell(driver, 1, 1);
+      await table.sendKeys(c1, Key.TAB);
+      await assertCellContents(driver, 0, 0, c0);
+      await assertCellContents(driver, 1, 1, c1);
+      await table.sendKeys(Key.CONTROL, 'z');
+      await table.sendKeys(Key.CONTROL, 'z');
+      await table.sendKeys(Key.CONTROL, 'z');
+      await table.sendKeys(Key.CONTROL, 'z');
+      await table.sendKeys(Key.CONTROL, 'z');
+      await assertCellContents(driver, 0, 0, rows[0][0]);
+      await assertCellContents(driver, 1, 1, rows[1][1]);
+      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await assertCellContents(driver, 0, 0, c0);
+      await assertCellContents(driver, 1, 1, rows[1][1]);
+      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await assertCellContents(driver, 0, 0, c0);
+      await assertCellContents(driver, 1, 1, c1);
+      await table.sendKeys(Key.CONTROL, 'z');
+      await assertCellContents(driver, 0, 0, c0);
+      await assertCellContents(driver, 1, 1, rows[1][1]);
+    });
   });
 
   describe('column headers', function() {
@@ -328,6 +376,10 @@ async function checkSelection(driver, startRow, endRow, startColumn, endColumn, 
 async function clickCell(driver, row, column) {
   const cell = await getCell(driver, row, column);
   await cell.click();
+}
+
+async function clearUndo(driver) {
+  return await driver.executeScript('return window.dataEntryGrid.clearUndo();');
 }
 
 async function getSelection(driver) {
