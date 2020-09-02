@@ -308,45 +308,56 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     function deleteRowsOption(count) {
         const el = document.createElement('OPTION');
-        el.setAttribute('option', 'delete');
+        el.setAttribute('value', 'delete');
         el.textContent = 'Delete Row';
         return el;
     }
     function addRowsBeforeOption(count) {
         const el = document.createElement('OPTION');
-        el.setAttribute('option', 'add-before');
+        el.setAttribute('value', 'add-before');
         el.textContent = 'Add Row Before';
         return el;
     }
     function addRowsAfterOption(count) {
         const el = document.createElement('OPTION');
-        el.setAttribute('option', 'add-after');
+        el.setAttribute('value', 'add-after');
         el.textContent = 'Add Row After';
         return el;
     }
     function rowHeaderMenu(ev, r) {
         let firstRow = r;
+        let count = 1;
         if ((r < anchorRow && r < selectionRow)
                 || anchorRow < r && selectionRow < r) {
             setSelection(r, 0, r, columnCount - 1);
+        } else {
+            if (anchorRow < selectionRow) {
+                firstRow = anchorRow;
+                count = selectionRow - anchorRow + 1;
+            } else {
+                firstRow = selectionRow;
+                count = anchorRow - selectionRow + 1;
+            }
         }
         contextMenu = document.createElement('SELECT');
+        const id = table.getAttribute('id').concat('-row-menu');
+        contextMenu.setAttribute('id', id);
         contextMenu.setAttribute('size', 3);
         const deleteOption = deleteRowsOption();
         deleteOption.onclick = function() {
-            undoable(deleteRows(firstRow, 1));
+            undoable(deleteRows(firstRow, count));
             table.focus();
         }
         contextMenu.appendChild(deleteOption);
         const addBeforeOption = addRowsBeforeOption();
         addBeforeOption.onclick = function() {
-            undoable(insertRows(firstRow, 1));
+            undoable(insertRows(firstRow, count));
             table.focus();
         }
         contextMenu.appendChild(addBeforeOption);
         const addAfterOption = addRowsAfterOption();
         addAfterOption.onclick = function() {
-            undoable(insertRows(firstRow + 1, 1));
+            undoable(insertRows(firstRow + count, count));
             table.focus();
         }
         contextMenu.appendChild(addAfterOption);

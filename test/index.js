@@ -279,7 +279,9 @@ describe('dataentrygrid', function () {
 
   describe('column headers', function() {
     it('can be set via the API', async function() {
+      assert.fail();
     });
+
     it('can be read via the API', async function() {
       const headers = await getColumnHeaders(driver);
       assert.deepEqual(headers, ['One', 'Two', 'Three']);
@@ -287,14 +289,94 @@ describe('dataentrygrid', function () {
   });
 
   describe('rows', function() {
-    it('can be deleted', async function() {
+    let table = null;
+
+    before(async function () {
+      await driver.get("http://localhost:3004/dataentrygrid.html");
+      table = await getTable(driver);
     });
+
     it('can be added', async function() {
+      const rc = await getRowCount(driver);
+      await clickCell(driver, 0, 0);
+      const contents = '32.1';
+      table.sendKeys(contents);
+      await rowHeaderClick(driver, 0, 'add-before');
+      const rc2 = await getRowCount(driver);
+      assert.strictEqual(rc2, rc + 1,
+        'row count (from API) does not increase when adding a row before');
+      await assertCellContents(driver, 1, 0, contents);
+      await assertCellContents(driver, 0, 0, '');
+      await clickCell(driver, 0, 0);
+      table.sendKeys(Key.SHIFT, Key.ARROW_DOWN);
+      await rowHeaderClick(driver, 1, 'add-after');
+      const rc3 = await getRowCount(driver);
+      assert.strictEqual(rc3, rc2 + 2,
+        'row count (from API) does not increase by 2 when adding a row after');
+      await assertCellContents(driver, 1, 0, contents);
+      await assertCellContents(driver, 2, 0, '');
+      await assertCellContents(driver, 3, 0, '');
     });
+
+    it('can be deleted', async function() {
+      // ensure we have at least four rows
+      await clickCell(driver, 0, 0);
+      await repeatKey(table, 4, Key.RETURN);
+      const rows = [['43'], ['509'], ['15'], ['88']];
+      await putCells(driver, 0, 4, 0, 1, rows);
+      const rc = await getRowCount(driver);
+      await clickCell(driver, 1, 1);
+      table.sendKeys(Key.SHIFT, Key.ARROW_DOWN);
+      await rowHeaderClick(driver, 1, 'delete');
+      const rc2 = await getRowCount(driver);
+      assert.strictEqual(rc2, rc - 2,
+        'row count (from API) does not decrease by 2 when deleting a row');
+      await assertCellContents(driver, 0, 0, rows[0][0]);
+      await assertCellContents(driver, 1, 0, rows[3][0]);
+    });
+
     it('are automatically added as required', async function() {
+      const rc = await getRowCount(driver);
+      await clickCell(driver, rc - 1, 0);
+      const firstContents = '123';
+      const secondContents = '456';
+      await table.sendKeys(firstContents, Key.RETURN, secondContents);
+      const rc2 = await getRowCount(driver);
+      assert.strictEqual(rc2, rc+1,
+        'row count (from API) does not increase when typing off the bottom row');
+      await assertCellContents(driver, rc - 1, 0, firstContents);
+      await assertCellContents(driver, rc, 0, secondContents);
+    });
+  });
+
+  describe('row header context menu', function() {
+    it('can have its option text set', async function() {
+      assert.fail();
+    });
+  });
+
+  describe('control buttons', function() {
+    it('can be set', function() {
+      assert.fail();
+    });
+
+    it('get disabled appropriately', function() {
+      assert.fail();
     });
   });
 });
+
+async function rowHeaderClick(driver, row, option) {
+  const rowHeader = await driver.findElement(
+    By.css(`#input tbody tr:nth-child(${row + 1}) th:nth-child(1)`));
+  await driver.actions({bridge: true}).contextClick(rowHeader).perform();
+  const optionElement = await driver.findElement(
+    By.css(`#input #input-row-menu option[value='${option}']`));
+  await driver.actions({bridge: true})
+      .move({origin: optionElement})
+      .click()
+      .perform();
+}
 
 function cellsToText(rows) {
   return rows.map(row => row.join('\t')).join('\n');
@@ -425,7 +507,7 @@ async function mouseDragCells(driver, coords) {
   let [r,c] = coords[0];
   let sel = cellSelector(r,c);
   const element = getCell(driver, r, c);
-  let actions = driver.actions().move({origin:element}).press();
+  let actions = driver.actions({bridge: true}).move({origin:element}).press();
   for (let i = 1; i != coords.length; ++i) {
     [r,c] = coords[i];
     const el = getCell(driver, r, c);
