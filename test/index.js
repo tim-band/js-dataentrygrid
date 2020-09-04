@@ -341,7 +341,7 @@ describe('dataentrygrid', function () {
       await clickCell(driver, 0, 0);
       const contents = '32.1';
       table.sendKeys(contents);
-      await rowHeaderClick(driver, 0, 'add-before');
+      await rowHeaderMenuSelect(driver, 0, 'add-before');
       const rc2 = await getRowCount(driver);
       assert.strictEqual(rc2, rc + 1,
         'row count (from API) does not increase when adding a row before');
@@ -349,7 +349,7 @@ describe('dataentrygrid', function () {
       await assertCellContents(driver, 0, 0, '');
       await clickCell(driver, 0, 0);
       table.sendKeys(Key.SHIFT, Key.ARROW_DOWN);
-      await rowHeaderClick(driver, 1, 'add-after');
+      await rowHeaderMenuSelect(driver, 1, 'add-after');
       const rc3 = await getRowCount(driver);
       assert.strictEqual(rc3, rc2 + 2,
         'row count (from API) does not increase by 2 when adding a row after');
@@ -367,7 +367,7 @@ describe('dataentrygrid', function () {
       const rc = await getRowCount(driver);
       await clickCell(driver, 1, 1);
       table.sendKeys(Key.SHIFT, Key.ARROW_DOWN);
-      await rowHeaderClick(driver, 1, 'delete');
+      await rowHeaderMenuSelect(driver, 1, 'delete');
       const rc2 = await getRowCount(driver);
       assert.strictEqual(rc2, rc - 2,
         'row count (from API) does not decrease by 2 when deleting a row');
@@ -390,8 +390,34 @@ describe('dataentrygrid', function () {
   });
 
   describe('row header context menu', function() {
+    let table = null;
+
+    before(async function () {
+      await driver.get("http://localhost:3004/dataentrygrid.html");
+      table = await getTable(driver);
+    });
+
     it('can have its option text set', async function() {
-      assert.fail();
+      const text = [{
+        deleteRow: 'Bye',
+        addRowBefore: 'New up',
+        addRowAfter: 'New down'
+      },{
+        deleteRow: 'Delete row',
+        addRowBefore: 'Add row before',
+        addRowAfter: 'Add row after'
+      }];
+      for (const i in text) {
+        await setText(driver, text[i]);
+        await rowHeaderClick(driver, 1);
+        const deleteText = await driver.findElement(rowHeaderMenuLocator('delete')).getText();
+        assert.strictEqual(deleteText, text[i].deleteRow);
+        const beforeText = await driver.findElement(rowHeaderMenuLocator('add-before')).getText();
+        assert.strictEqual(beforeText, text[i].addRowBefore);
+        const afterText = await driver.findElement(rowHeaderMenuLocator('add-after')).getText();
+        assert.strictEqual(afterText, text[i].addRowAfter);
+        await clickCell(driver, 0, 0);
+      }
     });
   });
 
@@ -406,16 +432,24 @@ describe('dataentrygrid', function () {
   });
 });
 
-async function rowHeaderClick(driver, row, option) {
-  const rowHeader = await driver.findElement(
-    By.css(`#input tbody tr:nth-child(${row + 1}) th:nth-child(1)`));
-  await driver.actions({bridge: true}).contextClick(rowHeader).perform();
+async function rowHeaderMenuSelect(driver, row, option) {
+  await rowHeaderClick(driver, row);
   const optionElement = await driver.findElement(
-    By.css(`#input #input-row-menu option[value='${option}']`));
+    rowHeaderMenuLocator(option));
   await driver.actions({bridge: true})
       .move({origin: optionElement})
       .click()
       .perform();
+}
+
+function rowHeaderMenuLocator(option) {
+  return By.css(`#input #input-row-menu option[value='${option}']`);
+}
+
+async function rowHeaderClick(driver, row) {
+  const rowHeader = await driver.findElement(
+    By.css(`#input tbody tr:nth-child(${row + 1}) th:nth-child(1)`));
+  await driver.actions({ bridge: true }).contextClick(rowHeader).perform();
 }
 
 function cellsToText(rows) {
@@ -502,6 +536,10 @@ async function clickCell(driver, row, column) {
 
 async function init(driver, headers, rowCount) {
   return await driver.executeScript(`window.dataEntryGrid.init(arguments[0], ${rowCount});`, headers);
+}
+
+async function setText(driver, textObject) {
+  return await driver.executeScript(`window.dataEntryGrid.setText(arguments[0]);`, textObject);
 }
 
 async function clearUndo(driver) {

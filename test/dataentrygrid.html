@@ -56,6 +56,11 @@ function createDataEntryGrid(containerId, rows, columns) {
     var redoStack = [];
     var inputBox = null;
     var contextMenu = null;
+    var localizedText = {
+        deleteRow: 'Delete row',
+        addRowBefore: 'Add row before',
+        addRowAfter: 'Add row after'
+    };
     function noop() { return null; }
     var commitEdit = noop;
     var table = document.getElementById(containerId); // while we aren't creating our own table
@@ -372,19 +377,19 @@ function createDataEntryGrid(containerId, rows, columns) {
     function deleteRowsOption(count) {
         const el = document.createElement('OPTION');
         el.setAttribute('value', 'delete');
-        el.textContent = 'Delete Row';
+        el.textContent = localizedText.deleteRow;
         return el;
     }
     function addRowsBeforeOption(count) {
         const el = document.createElement('OPTION');
         el.setAttribute('value', 'add-before');
-        el.textContent = 'Add Row Before';
+        el.textContent = localizedText.addRowBefore;
         return el;
     }
     function addRowsAfterOption(count) {
         const el = document.createElement('OPTION');
         el.setAttribute('value', 'add-after');
-        el.textContent = 'Add Row After';
+        el.textContent = localizedText.addRowAfter;
         return el;
     }
     function rowHeaderMenu(ev, r) {
@@ -805,6 +810,13 @@ function createDataEntryGrid(containerId, rows, columns) {
     table.focus();
     return {
         init: init,
+        setText: function(newText) {
+            for (const k in localizedText) {
+                if (k in newText) {
+                    localizedText[k] = newText[k];
+                }
+            }
+        },
         getSelection: function() { return {
             anchorRow: anchorRow,
             anchorColumn: anchorColumn,
