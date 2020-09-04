@@ -87,6 +87,69 @@ function createDataEntryGrid(containerId, rows, columns) {
         }
         return headers;
     }
+    // Create a DOM element containing a load of other
+    // elements:
+    // createElementArray('TR', 'TD', ['one, 'two', 'three'], function(e,x) {e.textContent = x;})
+    // Can use an already-constructed element for container.
+    // Can use the number of items instead of an array for items (and get 0, 1, 2...)
+    // Can leave out adaptFn.
+    function createElementArray(container, element, items, adaptFn) {
+        if (typeof(container) === 'string') {
+            container = document.createElement(container);
+        }
+        var size = items;
+        var getItem = function(index) { return index; }
+        if (typeof(items) === 'object') {
+            getItem = function(index) { return items[index]; }
+            size = items.length;
+        }
+        for (var i = 0; i != size; ++i) {
+            var sub = document.createElement(element);
+            if (adaptFn) {
+                adaptFn(sub, getItem(i));
+            }
+            container.appendChild(sub);
+        }
+        return container;
+    }
+    function init(headers, newRowCount) {
+        var thead = createElementArray('THEAD', 'TR', 1, function(tr) {
+            createElementArray(tr, 'TH', 1);
+            createElementArray(tr, 'TH', headers, function(e, x) {
+                e.textContent = x;
+            });
+        });
+        var tbody = createElementArray('TBODY', 'TR', newRowCount, function(tr, i) {
+            createElementArray(tr, 'TH', 1);
+            createElementArray(tr, 'TD', headers.length, function(td, j) {
+                if (i == 0 && j == 0) {
+                    td.setAttribute('class', 'anchor');
+                }
+            });
+        });
+        var oldTHeads = table.getElementsByTagName('THEAD');
+        if (oldTHeads.length == 0) {
+            table.appendChild(thead);
+        } else {
+            table.replaceChild(thead, oldTHeads[0]);
+        }
+        var oldTBodies = table.getElementsByTagName('TBODY');
+        if (oldTBodies.length == 0) {
+            table.appendChild(tbody);
+        } else {
+            table.replaceChild(tbody, oldTBodies[0]);
+        }
+        console.log("we're here", rowCount, columnCount);
+        anchorRow = 1;
+        selectionRow = 1;
+        anchorColumn = 0;
+        selectionColumn = 0;
+        rowCount = newRowCount + 1;
+        columnCount = headers.length;
+        console.log("we're there", rowCount, columnCount);
+        clearUndo();
+        setCellMouseHandlers(1);
+    }
     function removeContextMenu() {
         if (contextMenu) {
             table.removeChild(contextMenu);
@@ -741,6 +804,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     table.appendChild(copyPasteBuffer);
     table.focus();
     return {
+        init: init,
         getSelection: function() { return {
             anchorRow: anchorRow,
             anchorColumn: anchorColumn,

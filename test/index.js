@@ -278,13 +278,53 @@ describe('dataentrygrid', function () {
   });
 
   describe('column headers', function() {
+    let table = null;
+
+    before(async function () {
+      await driver.get("http://localhost:3004/dataentrygrid.html");
+      table = await getTable(driver);
+    });
+
     it('can be set via the API', async function() {
-      assert.fail();
+      const newRows = 5;
+      const newHeaders = ['proton', 'neutral', 'electron', 'positron'];
+      await init(driver, newHeaders, newRows);
+      const rc = await getRowCount(driver);
+      assert.strictEqual(rc, newRows);
+      const cc = await getColumnCount(driver);
+      assert.strictEqual(cc, newHeaders.length);
+      const heads = await getColumnHeaders(driver);
+      assert.deepEqual(heads, newHeaders);
+      // and check that the DOM reflects this
+      const rs = await driver.findElements(By.css('table#input tbody tr'));
+      assert.strictEqual(rs.length, newRows,
+        'did not initialize with the correct number of rows');
+      const ths = await driver.findElements(By.css('table#input thead th'));
+      assert.strictEqual(ths.length, newHeaders.length + 1,
+        'did not initialize with the correct number of column headers');
+      for (let i = 0; i != rc; ++i) {
+        const tds = await driver.findElements(By.css(`table#input tbody tr:nth-child(${i+1}) td`));
+        assert.strictEqual(tds.length, newHeaders.length,
+          `did not initialize row ${i} with the correct number cells`);
+          await assertCellContents(driver, i, cc-1, '');
+        }
     });
 
     it('can be read via the API', async function() {
-      const headers = await getColumnHeaders(driver);
-      assert.deepEqual(headers, ['One', 'Two', 'Three']);
+      const headerss = [['one', 'two'], ['whiskey', 'x-ray', 'yankee', 'zulu']];
+      for (let h = 0; h != headerss.length; ++h) {
+        const headers = headerss[h];
+        await init(driver, headers, 5);
+        const ths = await driver.findElements(By.css('table#input thead th'));
+        let actualHeaders = [];
+        for (let i = 1; i < ths.length; ++i) {
+          const e = await ths[i].getText();
+          actualHeaders.push(e);
+        }
+        assert.deepEqual(actualHeaders, headers);
+        const apiHeaders = await getColumnHeaders(driver);
+        assert.deepEqual(apiHeaders, headers);
+      }
     });
   });
 
@@ -458,6 +498,10 @@ async function checkSelection(driver, startRow, endRow, startColumn, endColumn, 
 async function clickCell(driver, row, column) {
   const cell = await getCell(driver, row, column);
   await cell.click();
+}
+
+async function init(driver, headers, rowCount) {
+  return await driver.executeScript(`window.dataEntryGrid.init(arguments[0], ${rowCount});`, headers);
 }
 
 async function clearUndo(driver) {
