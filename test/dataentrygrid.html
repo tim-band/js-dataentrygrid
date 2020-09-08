@@ -144,14 +144,12 @@ function createDataEntryGrid(containerId, rows, columns) {
         } else {
             table.replaceChild(tbody, oldTBodies[0]);
         }
-        console.log("we're here", rowCount, columnCount);
         anchorRow = 1;
         selectionRow = 1;
         anchorColumn = 0;
         selectionColumn = 0;
         rowCount = newRowCount + 1;
         columnCount = headers.length;
-        console.log("we're there", rowCount, columnCount);
         clearUndo();
         setCellMouseHandlers(1);
     }
