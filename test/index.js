@@ -1,6 +1,6 @@
 "use strict";
 
-const { describe, before, after, it } = require('mocha');
+const { describe, before, beforeEach, after, it } = require('mocha');
 const assert = require('assert');
 const { Builder, By, Key, until } = require('selenium-webdriver');
 const http = require('http');
@@ -422,15 +422,83 @@ describe('dataentrygrid', function () {
   });
 
   describe('control buttons', function() {
-    it('can be set', function() {
-      assert.fail();
+    let table = null;
+
+    beforeEach(async function () {
+      await driver.get("http://localhost:3004/dataentrygrid.html");
+      table = await getTable(driver);
     });
 
-    it('get disabled appropriately', function() {
-      assert.fail();
+    it('can be set', async function() {
+      const undoButton = await driver.findElement(By.id('undo'));
+      const redoButton = await driver.findElement(By.id('redo'));
+      setButtons(driver, undoButton, redoButton);
+      const rows = [['55.5', '66.6'], ['77.7', '88.8']];
+      await putCells(driver, 0, 2, 0, 2, rows);
+      const c1 = '672';
+      await clickCell(driver, 1, 1);
+      await table.sendKeys(c1, Key.TAB);
+      await assertCellContents(driver, 0, 0, rows[0][0]);
+      await assertCellContents(driver, 1, 1, c1);
+      await undoButton.click();
+      await assertCellContents(driver, 0, 0, rows[0][0]);
+      await assertCellContents(driver, 1, 1, rows[1][1]);
+      await redoButton.click();
+      await assertCellContents(driver, 0, 0, rows[0][0]);
+      await assertCellContents(driver, 1, 1, c1);
+    });
+
+    it('get disabled appropriately', async function() {
+      const undoButton = await driver.findElement(By.id('undo'));
+      const redoButton = await driver.findElement(By.id('redo'));
+      setButtons(driver, undoButton, redoButton);
+      await assertDisabled(driver, 'undo');
+      await assertDisabled(driver, 'redo');
+      const rows = [['55.5', '66.6'], ['77.7', '88.8']];
+      await putCells(driver, 0, 2, 0, 2, rows);
+      await clearUndo(driver);
+      await assertDisabled(driver, 'undo');
+      await assertDisabled(driver, 'redo');
+      await clickCell(driver, 0, 0);
+      const c0 = '143';
+      await table.sendKeys(c0, Key.RETURN);
+      await assertEnabled(driver, 'undo');
+      await assertDisabled(driver, 'redo');
+      const c1 = '672';
+      await clickCell(driver, 1, 1);
+      await table.sendKeys(c1, Key.TAB);
+      await assertEnabled(driver, 'undo');
+      await assertDisabled(driver, 'redo');
+      await undoButton.click();
+      await assertEnabled(driver, 'undo');
+      await assertEnabled(driver, 'redo');
+      await undoButton.click();
+      await assertDisabled(driver, 'undo');
+      await assertEnabled(driver, 'redo');
+      await redoButton.click();
+      await assertEnabled(driver, 'undo');
+      await assertEnabled(driver, 'redo');
+      await redoButton.click();
+      await assertEnabled(driver, 'undo');
+      await assertDisabled(driver, 'redo');
     });
   });
 });
+
+async function assertEnabled(driver, buttonId) {
+  // for some reason we need to fetch it every time,
+  // we can't just use the same one or updates to
+  // the attributes don't show
+  const button = driver.findElement(By.id(buttonId));
+  const disabled = await button.getAttribute('disabled');
+  assert(!disabled, buttonId + ' should be enabled');
+}
+
+async function assertDisabled(driver, buttonId) {
+  const button = driver.findElement(By.id(buttonId));
+  const disabled = await button.getAttribute('disabled');
+  assert(disabled, buttonId + ' should be disabled');
+}
 
 async function rowHeaderMenuSelect(driver, row, option) {
   await rowHeaderClick(driver, row);
@@ -535,11 +603,21 @@ async function clickCell(driver, row, column) {
 }
 
 async function init(driver, headers, rowCount) {
-  return await driver.executeScript(`window.dataEntryGrid.init(arguments[0], ${rowCount});`, headers);
+  return await driver.executeScript(
+      `window.dataEntryGrid.init(arguments[0], ${rowCount});`,
+      headers);
 }
 
 async function setText(driver, textObject) {
-  return await driver.executeScript(`window.dataEntryGrid.setText(arguments[0]);`, textObject);
+  return await driver.executeScript(
+      `window.dataEntryGrid.setText(arguments[0]);`,
+      textObject);
+}
+
+async function setButtons(driver, undoButton, redoButton) {
+  return await driver.executeScript(
+      `window.dataEntryGrid.setButtons(arguments[0], arguments[1]);`,
+      undoButton, redoButton);
 }
 
 async function clearUndo(driver) {

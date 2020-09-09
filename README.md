@@ -17,21 +17,23 @@ At the moment, just an HTML proof-of-concept with the following features:
 * Starting to type forces the input box to open
 * Copy and paste to and from Excel/LibreOffice
 * Shift-arrows to extend selection
+* Multiple row add/delete
+* Localization
+* Useful API
+* Provide undo and redo buttons
 
 but lacking:
 
-* Multiple row add/delete
 * Hiding the blinking text cursor
+  * perhaps we can have a hidden SELECT or something else
+    focussable within the table to get focus and pass events
+    up to the table?
 * 'Cut' and 'Copy' sometimes grayed out on Chrome's context menu,
   because nothing is selected.
 * Home/End/Page up/Page down
-* Localization
-  * The only text is in the right-click menu; could use icons?
-* Callbacks to grey your own undo/redo buttons
 * Check which browsers it works on
 * Touch screen support
 * Make it suitable for other projects to embed
   * npm build
   * minification
   * test code!
-  * useful API

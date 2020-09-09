@@ -56,6 +56,8 @@ function createDataEntryGrid(containerId, rows, columns) {
     var redoStack = [];
     var inputBox = null;
     var contextMenu = null;
+    var undoButton = null;
+    var redoButton = null;
     var localizedText = {
         deleteRow: 'Delete row',
         addRowBefore: 'Add row before',
@@ -67,6 +69,12 @@ function createDataEntryGrid(containerId, rows, columns) {
     // undoable(myAction()) pushes the inverse action onto the undo stack
     function undoable(action) {
         if (action !== null) {
+            if (redoButton && redoStack.length !== 0) {
+                redoButton.setAttribute('disabled', '');
+            }
+            if (undoButton && undoStack.length === 0) {
+                undoButton.removeAttribute('disabled');
+            }
             undoStack.push(action);
             redoStack = [];
         }
@@ -152,6 +160,26 @@ function createDataEntryGrid(containerId, rows, columns) {
         columnCount = headers.length;
         clearUndo();
         setCellMouseHandlers(1);
+    }
+    function setButtons(anUndoButton, aRedoButton) {
+        undoButton = anUndoButton;
+        redoButton = aRedoButton;
+        if (undoButton) {
+            undoButton.onclick = undo;
+            if (undoStack.length === 0) {
+                undoButton.setAttribute('disabled', '');
+            } else {
+                undoButton.removeAttribute('disabled');
+            }
+        }
+        if (redoButton) {
+            redoButton.onclick = redo;
+            if (redoStack.length === 0) {
+                redoButton.setAttribute('disabled', '');
+            } else {
+                redoButton.removeAttribute('disabled');
+            }
+        }
     }
     function removeContextMenu() {
         if (contextMenu) {
@@ -532,9 +560,15 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     function redo() {
         commitEdit();
-        if (0 < redoStack.length) {
+        if (redoStack.length !== 0) {
             const action = redoStack.pop()();
+            if (redoButton && redoStack.length === 0) {
+                redoButton.setAttribute('disabled', '');
+            }
             if (action !== null) {
+                if (undoButton && undoStack.length === 0) {
+                    undoButton.removeAttribute('disabled');
+                }
                 undoStack.push(action);
             }
         }
@@ -542,15 +576,27 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     function undo() {
         undoable(commitEdit());
-        if (0 < undoStack.length) {
+        if (undoStack.length !== 0) {
             const action = undoStack.pop()();
+            if (undoButton && undoStack.length === 0) {
+                undoButton.setAttribute('disabled', '');
+            }
             if (action !== null) {
+                if (redoButton && redoStack.length === 0) {
+                    redoButton.removeAttribute('disabled');
+                }
                 redoStack.push(action);
             }
         }
         table.focus();
     }
     function clearUndo() {
+        if (redoButton && redoStack.length !== 0) {
+            redoButton.setAttribute('disabled', '');
+        }
+        if (undoButton && undoStack.length !== 0) {
+            undoButton.setAttribute('disabled', '');
+        }
         redoStack = [];
         undoStack = [];
     }
@@ -815,6 +861,7 @@ function createDataEntryGrid(containerId, rows, columns) {
                 }
             }
         },
+        setButtons: setButtons,
         getSelection: function() { return {
             anchorRow: anchorRow,
             anchorColumn: anchorColumn,
@@ -837,6 +884,10 @@ function createDataEntryGrid(containerId, rows, columns) {
 </script>
 </head>
 <body onload="window.dataEntryGrid = createDataEntryGrid('input',3,3)">
+    <div>
+        <button id='undo'>Undo</button>
+        <button id='redo'>Redo</button>
+    </div>
     <table id='input' class='data-entry-grid'>
         <thead>
             <tr>
