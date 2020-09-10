@@ -11,9 +11,13 @@ describe('dataentrygrid', function () {
   let server = null;
   let driver = null;
 
+  async function doGet() {
+    await driver.get("http://localhost:3004/test/dataentrygrid.html");
+  }
+
   before(async function () {
     server = await http.createServer(function(req, resp) {
-      fs.readFile("./test" + req.url, function(error, content) {
+      fs.readFile("." + req.url, function(error, content) {
         let code = 200;
         if (error) {
           if (error.code === "ENOENT") {
@@ -44,7 +48,7 @@ describe('dataentrygrid', function () {
     this.timeout(5000);
 
     before(async function() {
-      await driver.get("http://localhost:3004/dataentrygrid.html");
+      await doGet();
       table = await getTable(driver);
     })
 
@@ -122,7 +126,7 @@ describe('dataentrygrid', function () {
     let table = null;
 
     before(async function () {
-      await driver.get("http://localhost:3004/dataentrygrid.html");
+      await doGet();
       table = await getTable(driver);
     });
 
@@ -281,7 +285,7 @@ describe('dataentrygrid', function () {
     let table = null;
 
     before(async function () {
-      await driver.get("http://localhost:3004/dataentrygrid.html");
+      await doGet();
       table = await getTable(driver);
     });
 
@@ -332,7 +336,7 @@ describe('dataentrygrid', function () {
     let table = null;
 
     before(async function () {
-      await driver.get("http://localhost:3004/dataentrygrid.html");
+      await doGet();
       table = await getTable(driver);
     });
 
@@ -393,7 +397,7 @@ describe('dataentrygrid', function () {
     let table = null;
 
     before(async function () {
-      await driver.get("http://localhost:3004/dataentrygrid.html");
+      await doGet();
       table = await getTable(driver);
     });
 
@@ -425,7 +429,7 @@ describe('dataentrygrid', function () {
     let table = null;
 
     beforeEach(async function () {
-      await driver.get("http://localhost:3004/dataentrygrid.html");
+      await doGet();
       table = await getTable(driver);
     });
 

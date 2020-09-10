@@ -4,7 +4,8 @@
   "description": "A minimalist, no-dependency 2D grid for data input",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test/index.js"
+    "build": "babel src --out-file lib/dataentrygrid.js",
+    "test": "npm run build && mocha test/index.js"
   },
   "repository": {
     "type": "git",
@@ -31,10 +32,11 @@
   "homepage": "https://github.com/tim-band/js-dataentrygrid#readme",
   "dependencies": {},
   "devDependencies": {
-    "@babel/cli": "7.10.1",
-    "@babel/core": "7.10.2",
-    "@babel/generator": "7.10.2",
-    "@babel/preset-env": "7.10.2",
+    "@babel/cli": "7.11.6",
+    "@babel/core": "7.11.6",
+    "@babel/generator": "7.11.6",
+    "@babel/polyfill": "7.11.5",
+    "@babel/preset-env": "7.11.5",
     "babel-plugin-minify-mangle-names": "0.5.0",
     "mocha": "^8.1.1",
     "selenium-webdriver": "4.0.0-alpha.7",

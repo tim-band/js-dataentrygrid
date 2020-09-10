@@ -1,6 +1,8 @@
 # js-dataentrygrid
 Featherweight Excel-like grid for data entry
 
+Build with `npm install .` then `npm run build`.
+
 At the moment, just an HTML proof-of-concept with the following features:
 
 * Click to edit
