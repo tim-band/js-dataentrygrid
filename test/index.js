@@ -45,7 +45,7 @@ describe('dataentrygrid', function () {
 
   describe('highlight (visual and API)', function () {
     let table = null;
-    this.timeout(5000);
+    this.timeout(8000);
 
     before(async function() {
       await doGet();
