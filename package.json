@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "babel src --out-file lib/dataentrygrid.js",
+    "docs": "documentation readme src/*.js --section=API",
     "test": "npm run build && mocha test/index.js"
   },
   "repository": {
@@ -40,6 +41,7 @@
     "babel-plugin-minify-mangle-names": "0.5.0",
     "mocha": "^8.1.1",
     "selenium-webdriver": "4.0.0-alpha.7",
-    "clipboardy": "2.3.0"
+    "clipboardy": "2.3.0",
+    "documentation": "13.0.2"
   }
 }

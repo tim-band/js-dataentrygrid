@@ -1,3 +1,11 @@
+/**
+ * Initialize an HTML table to be a data entry grid.
+ * 
+ * @param {string}  containerId id of the `table` element you want to make interactive
+ * @param {number} rows count of rows already existing in the table
+ * @param {number} columns count of columns already existing in the table
+ * @returns {Object} The table object.
+ */
 function createDataEntryGrid(containerId, rows, columns) {
   var rowCount = rows;
   var columnCount = columns;
@@ -501,13 +509,6 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     undo.undoable(putCellsAction(firstRow, lastRow, firstColumn, lastColumn, empties));
   }
-  function putClipboard(text) {
-    const buffer = table.getElementsByClassName('data-entry-grid-copy-paste-buffer')[0];
-    buffer.value = text;
-    buffer.select();
-    buffer.setSelectionRange(0, buffer.value.length);
-    document.execCommand('copy');
-  }
   function copySelection() {
     let texts = [];
     forEachSelectedRow(function (row) {
@@ -729,17 +730,19 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
   };
   table.tabIndex = 0;
-  const copyPasteBuffer = document.createElement('TEXTAREA');
-  copyPasteBuffer.classList.add('data-entry-grid-copy-paste-buffer');
-  copyPasteBuffer.style.position = 'fixed';
-  copyPasteBuffer.style.top = '0';
-  copyPasteBuffer.style.right = '100%';
-  copyPasteBuffer.style.zIndex = '-1';
-  copyPasteBuffer.style.opacity = '0';
-  table.appendChild(copyPasteBuffer);
   table.focus();
   return {
+    /**
+     * Re-initialize the table.
+     * @param {Object} Array of strings to become the new column headers
+     * @param {number} Number of rows the table should now have
+     */
     init: init,
+    /**
+     * Sets localized text for the row header context table.
+     * @param {Object} newText Text of table ids to strings. The ids currently
+     * recognized are `deleteRow`, `addRowBefore` and `addRowAfter`.
+     */
     setText: function (newText) {
       for (const k in localizedText) {
         if (k in newText) {
@@ -747,7 +750,22 @@ function createDataEntryGrid(containerId, rows, columns) {
         }
       }
     },
+    /**
+     * Sets existing buttons on the page to be functional undo and redo
+     * buttons, including becoming disabled when the appropriate stack
+     * is exhausted.
+     * @param {HTMLButtonElement} undoButton Button to set as undo
+     * button (or null)
+     * @param {HTMLButtonElement} redoButton Button to set as redo
+     * button (or null)
+     */
     setButtons: (undoButton, redoButton) => undo.setButtons(undoButton, redoButton),
+    /**
+     * Gets the position and size of the selection.
+     * @returns {Object} the position of the selection given by the
+     * following keys: `anchorRow`, `anchorColumn`, `selectionRow`,
+     * `selectionColumn`.
+     */
     getSelection: function () {
       return {
         anchorRow: anchorRow,
@@ -756,16 +774,60 @@ function createDataEntryGrid(containerId, rows, columns) {
         selectionColumn: selectionColumn
       };
     },
+    /**
+     * Returns the number of rows.
+     * @returns {number} of rows in the table
+     */
     rowCount: function () { return rowCount },
+    /**
+     * Returns the number of columns.
+     * @returns {number} of columns in the table
+     */
     columnCount: function () { return columnCount },
+    /**
+     * Returns the column headers.
+     * @returns {Object} array of strings.
+     */
     getColumnHeaders: getColumnHeaders,
+    /**
+     * Moves the anchor (and selection to the same place)
+     * @params {number} row to go to
+     * @params {number} column to go to
+     */
     goToCell: goToCell,
+    /**
+     * Gets the text of the cells requested.
+     * @param {number} rowStart first row (zero-based)
+     * @param {number} rowEnd one past the last row
+     * @param {number} columnStart first column
+     * @param {number} columnEnd one past the last column
+     * @return {Object} Array of rows, each of which is an array
+     * of strings, the contents of each cell.
+     */
     getCells: getCells,
-    putCells: function (startRow, endRow, startColumn, endColumn, values) {
-      undo.undoable(putCellsAction(startRow, endRow, startColumn, endColumn, values));
+    /**
+     * Gets the text of the cells requested.
+     * @param {number} rowStart first row (zero-based)
+     * @param {number} rowEnd one past the last row
+     * @param {number} columnStart first column
+     * @param {number} columnEnd one past the last column
+     * @param {Object} values Array of rows, each of which is an array
+     * of strings, the contents of each cell.
+     */
+    putCells: function (rowStart, rowEnd, columnStart, columnEnd, values) {
+      undo.undoable(putCellsAction(rowStart, rowEnd, columnStart, columnEnd, values));
     },
+    /**
+     * Clear the undo and redo stacks.
+     */
     clearUndo: () => undo.clearUndo(),
+    /**
+     * Undoes the last action done or redone.
+     */
     undo: () => doUndo(),
+    /**
+     * Redoes the last undone action.
+     */
     redo: () => doRedo()
   };
 };
