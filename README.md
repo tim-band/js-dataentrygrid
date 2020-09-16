@@ -36,10 +36,6 @@ but lacking:
 -   Home/End/Page up/Page down
 -   Check which browsers it works on
 -   Touch screen support
--   Make it suitable for other projects to embed
-    -   npm build
-    -   minification
-    -   test code!
 
 # API
 
