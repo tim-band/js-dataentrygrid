@@ -204,7 +204,7 @@ describe('dataentrygrid', function () {
       await clickCell(driver, 0, 0);
       await table.sendKeys(Key.CONTROL, 'v');
       const actual = await getCells(driver, 0, 2, 0, 2);
-      assert.deepEqual(actual, rows, 'cell text did not match pasted text');
+      assert.deepStrictEqual(actual, rows, 'cell text did not match pasted text');
     });
 
     it('can be restored with undo and redo', async function() {
@@ -298,7 +298,7 @@ describe('dataentrygrid', function () {
       const cc = await getColumnCount(driver);
       assert.strictEqual(cc, newHeaders.length);
       const heads = await getColumnHeaders(driver);
-      assert.deepEqual(heads, newHeaders);
+      assert.deepStrictEqual(heads, newHeaders);
       // and check that the DOM reflects this
       const rs = await driver.findElements(By.css('table#input tbody tr'));
       assert.strictEqual(rs.length, newRows,
@@ -325,9 +325,9 @@ describe('dataentrygrid', function () {
           const e = await ths[i].getText();
           actualHeaders.push(e);
         }
-        assert.deepEqual(actualHeaders, headers);
+        assert.deepStrictEqual(actualHeaders, headers);
         const apiHeaders = await getColumnHeaders(driver);
-        assert.deepEqual(apiHeaders, headers);
+        assert.deepStrictEqual(apiHeaders, headers);
       }
     });
   });
@@ -570,7 +570,7 @@ async function checkSelection(driver, startRow, endRow, startColumn, endColumn, 
     selectionRow: endRow,
     selectionColumn: endColumn
   };
-  assert.deepEqual(sel, expected, `${name} failed`);
+  assert.deepStrictEqual(sel, expected, `${name} failed`);
   // visual selection
   const minR = Math.min(startRow, endRow);
   const maxR = Math.max(startRow, endRow);

@@ -25,15 +25,19 @@ function createDataEntryGrid(containerId, rows, columns) {
   function noop() { return null; }
   var commitEdit = noop;
   var table = document.getElementById(containerId); // while we aren't creating our own table
+
   function getRow(r) {
     return table.getElementsByTagName('TR')[r];
   }
+
   function getCell(r, c) {
     return getRow(r).getElementsByTagName('TD')[c];
   }
+
   function getAnchor() {
     return getCell(anchorRow, anchorColumn);
   }
+
   function getColumnHeaders() {
     var thead = table.getElementsByTagName('THEAD');
     if (thead.length === 0) {
@@ -46,6 +50,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     return headers;
   }
+
   // Create a DOM element containing a load of other
   // elements:
   // createElementArray('TR', 'TD', ['one, 'two', 'three'], function(e,x) {e.textContent = x;})
@@ -71,6 +76,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     return container;
   }
+
   function init(headers, newRowCount) {
     var thead = createElementArray('THEAD', 'TR', 1, function (tr) {
       createElementArray(tr, 'TH', 1);
@@ -107,12 +113,14 @@ function createDataEntryGrid(containerId, rows, columns) {
     undo.clearUndo();
     setCellMouseHandlers(1);
   }
+
   function removeContextMenu() {
     if (contextMenu) {
       table.removeChild(contextMenu);
       contextMenu = null;
     }
   }
+
   function getMouseCoordinates(ev) {
     // polyfill
     if (ev.pageX || ev.pageY) {
@@ -123,6 +131,7 @@ function createDataEntryGrid(containerId, rows, columns) {
       y: ev.clientY + document.body.scrollTop + document.documentElement.scrollTop
     }
   }
+
   function preventDefault(ev) {
     // Firefox polyfill
     if (ev.preventDefault) {
@@ -137,10 +146,12 @@ function createDataEntryGrid(containerId, rows, columns) {
     // IE7/8 polyfill
     return false;
   }
+
   function getEvent(ev) {
     // polyfill
     return ev ? ev : window.event;
   }
+
   function handleInputKey(ev) {
     ev = getEvent(ev);
     if (ev.keyCode === 9) {
@@ -156,6 +167,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     return true;
   }
+
   function beginEdit() {
     const box = document.createElement('INPUT');
     const r = anchorRow;
@@ -185,6 +197,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     box.focus();
     inputBox = box;
   }
+
   function doCommitEdit(row, column, box, oldValue) {
     inputBox = null;
     commitEdit = noop;
@@ -198,6 +211,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     return function () { return putCellsAction(row, row + 1, column, column + 1, [[oldValue]]) };
   }
+
   function getTbody() {
     const tbodies = table.getElementsByTagName('TBODY');
     if (tbodies.length < 1) {
@@ -205,6 +219,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     return tbodies[0];
   }
+
   function insertRows(r, count) {
     undo.undoable(commitEdit());
     const tbody = getTbody();
@@ -212,13 +227,8 @@ function createDataEntryGrid(containerId, rows, columns) {
       function (child) { tbody.insertBefore(child, getRow(r)); }
       : function (child) { tbody.appendChild(child); };
     for (var i = 0; i !== count; ++i) {
-      const row = document.createElement('TR');
-      const rowHeader = document.createElement('TH');
-      rowHeader.textContent = r + i;
-      row.appendChild(rowHeader);
-      for (var j = 0; j != columnCount; ++j) {
-        row.appendChild(document.createElement('TD'));
-      }
+      const row = createElementArray('TR', 'TH', 1);
+      createElementArray(row, 'TD', columnCount);
       insertFunction(row);
     }
     rowCount += count;
@@ -239,6 +249,7 @@ function createDataEntryGrid(containerId, rows, columns) {
       return deleteRows(r, count);
     };
   }
+
   function deleteRows(r, count) {
     undo.undoable(commitEdit());
     const values = getCells(r, r + count, 0, columnCount);
@@ -274,11 +285,13 @@ function createDataEntryGrid(containerId, rows, columns) {
       return inverse;
     };
   }
+
   function markSelectedColumns(row) {
     forEachSelectedColumn(row, function (cell) {
       cell.classList.add('selected');
     });
   }
+
   function setSelection(aRow, aColumn, sRow, sColumn) {
     getAnchor().classList.remove('anchor');
     forEachSelectedRow(function (row) {
@@ -295,6 +308,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     });
     getAnchor().classList.add('anchor');
   }
+
   function doGoToCell(r, c) {
     undo.undoable(commitEdit());
     getAnchor().classList.remove('anchor');
@@ -306,12 +320,14 @@ function createDataEntryGrid(containerId, rows, columns) {
     getAnchor().classList.add('anchor');
     beginEdit();
   }
+
   function goToNextRow() {
     if (rowCount <= anchorRow + 1) {
       undo.undoable(insertRows(rowCount, 1));
     }
     doGoToCell(anchorRow + 1, returnColumn);
   }
+
   function goToPreviousCell() {
     doGoToCell(anchorRow, anchorColumn - 1);
   }
@@ -322,28 +338,33 @@ function createDataEntryGrid(containerId, rows, columns) {
       goToNextRow();
     }
   }
+
   function goToCell(r, c) {
     returnColumn = c;
     doGoToCell(r, c);
   }
+
   function deleteRowsOption(count) {
     const el = document.createElement('OPTION');
     el.setAttribute('value', 'delete');
     el.textContent = localizedText.deleteRow;
     return el;
   }
+
   function addRowsBeforeOption(count) {
     const el = document.createElement('OPTION');
     el.setAttribute('value', 'add-before');
     el.textContent = localizedText.addRowBefore;
     return el;
   }
+
   function addRowsAfterOption(count) {
     const el = document.createElement('OPTION');
     el.setAttribute('value', 'add-after');
     el.textContent = localizedText.addRowAfter;
     return el;
   }
+
   function rowHeaderMenu(ev, r) {
     let firstRow = r;
     let count = 1;
@@ -392,6 +413,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     table.appendChild(contextMenu);
     return contextMenu;
   }
+
   function forEachRow(rowStart, rowEnd, callback) {
     const rows = table.getElementsByTagName('TR');
     const rEnd = (rows.length < rowEnd ? rows.length : rowEnd) - rowStart;
@@ -399,6 +421,7 @@ function createDataEntryGrid(containerId, rows, columns) {
       callback(rows[rowStart + i], i, rowStart + i);
     }
   }
+
   function forEachColumn(row, columnStart, columnEnd, callback) {
     const cs = row.getElementsByTagName('TD');
     let cEnd = (cs.length < columnEnd ? cs.length : columnEnd) - columnStart;
@@ -406,14 +429,17 @@ function createDataEntryGrid(containerId, rows, columns) {
       callback(cs[columnStart + i], i, columnStart + i);
     }
   }
+
   function forEachSelectedRow(callback) {
     forEachRow(Math.min(anchorRow, selectionRow),
       Math.max(anchorRow, selectionRow) + 1, callback);
   }
+
   function forEachSelectedColumn(row, callback) {
     forEachColumn(row, Math.min(anchorColumn, selectionColumn),
       Math.max(anchorColumn, selectionColumn) + 1, callback);
   }
+
   function setCellMouseHandlers(firstRow) {
     forEachRow(firstRow, rowCount, function (row, i, thisRow) {
       const rowHeaders = row.getElementsByTagName('TH');
@@ -453,6 +479,7 @@ function createDataEntryGrid(containerId, rows, columns) {
       }
     });
   }
+
   function getCells(rowStart, rowEnd, columnStart, columnEnd) {
     let vss = [];
     forEachRow(rowStart, rowEnd, function (row) {
@@ -469,6 +496,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     });
     return vss;
   }
+
   function putCells(rowStart, rowEnd, columnStart, columnEnd, values) {
     forEachRow(rowStart, rowEnd, function (row, i) {
       var vr = values[i];
@@ -477,6 +505,7 @@ function createDataEntryGrid(containerId, rows, columns) {
       });
     });
   }
+
   // an 'action' is a function that returns its inverse (which is also an action
   // and so returns a function that is the equivalent of the original action)
   function putCellsAction(rowStart, rowEnd, columnStart, columnEnd, values) {
@@ -484,16 +513,19 @@ function createDataEntryGrid(containerId, rows, columns) {
     putCells(rowStart, rowEnd, columnStart, columnEnd, values);
     return function () { return putCellsAction(rowStart, rowEnd, columnStart, columnEnd, oldValues) };
   }
+
   function doUndo() {
     undo.undoable(commitEdit());
     undo.undo();
     table.focus();
   }
+
   function doRedo() {
     commitEdit();
     undo.redo();
     table.focus();
   }
+
   function clearSelection() {
     const firstRow = Math.min(anchorRow, selectionRow);
     const lastRow = Math.max(anchorRow, selectionRow) + 1;
@@ -509,6 +541,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     undo.undoable(putCellsAction(firstRow, lastRow, firstColumn, lastColumn, empties));
   }
+
   function copySelection() {
     let texts = [];
     forEachSelectedRow(function (row) {
@@ -525,6 +558,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     });
     return texts.join('\n');
   }
+
   function paste(clip) {
     if (clip.length === 0) {
       return;
@@ -570,6 +604,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
     undo.undoable(putCellsAction(firstRow, lastRow, firstColumn, lastColumn, values));
   }
+
   function tableKeyPressHandler(ev) {
     ev = getEvent(ev);
     if (contextMenu) {
@@ -582,6 +617,7 @@ function createDataEntryGrid(containerId, rows, columns) {
       return preventDefault(ev);
     }
   }
+
   function tableCutHandler(ev) {
     ev = getEvent(ev);
     const text = copySelection();
@@ -590,12 +626,14 @@ function createDataEntryGrid(containerId, rows, columns) {
     table.focus(); // seems necessary on Firefox
     return preventDefault(ev);
   }
+
   function tableCopyHandler(ev) {
     ev = getEvent(ev);
     const text = copySelection();
     ev.clipboardData.setData('text/plain', text);
     return preventDefault(ev);
   }
+
   function tablePasteHandler(ev) {
     ev = getEvent(ev);
     if (0 <= ev.clipboardData.types.indexOf('text/plain')) {
@@ -610,6 +648,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     table.focus(); // seems necessary on Firefox
     return preventDefault(ev);
   }
+
   function tableKeyDownHandler(ev) {
     ev = getEvent(ev);
     if (contextMenu) {
@@ -650,6 +689,7 @@ function createDataEntryGrid(containerId, rows, columns) {
       return preventDefault(ev);
     }
   }
+
   function moveAnchor(ev) {
     if (ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) {
       return;
@@ -687,6 +727,7 @@ function createDataEntryGrid(containerId, rows, columns) {
       return false;
     }
   }
+
   function moveSelection(ev) {
     if (!ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) {
       return;
