@@ -9,9 +9,9 @@
 function createDataEntryGrid(containerId, rows, columns) {
   var rowCount = rows;
   var columnCount = columns;
-  var anchorRow = 1;
+  var anchorRow = 0;
   var anchorColumn = 0;
-  var selectionRow = 1;
+  var selectionRow = 0;
   var selectionColumn = 0;
   var returnColumn = 0;
   var inputBox = null;
@@ -27,7 +27,7 @@ function createDataEntryGrid(containerId, rows, columns) {
   var table = document.getElementById(containerId); // while we aren't creating our own table
 
   function getRow(r) {
-    return table.getElementsByTagName('TR')[r];
+    return getTbody().getElementsByTagName('TR')[r];
   }
 
   function getCell(r, c) {
@@ -104,14 +104,14 @@ function createDataEntryGrid(containerId, rows, columns) {
     } else {
       table.replaceChild(tbody, oldTBodies[0]);
     }
-    anchorRow = 1;
-    selectionRow = 1;
+    anchorRow = 0;
+    selectionRow = 0;
     anchorColumn = 0;
     selectionColumn = 0;
-    rowCount = newRowCount + 1;
+    rowCount = newRowCount;
     columnCount = headers.length;
     undo.clearUndo();
-    setCellMouseHandlers(1);
+    setCellMouseHandlers(0);
   }
 
   function removeContextMenu() {
@@ -173,7 +173,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     const r = anchorRow;
     const c = anchorColumn;
     let maxLength = 3;
-    forEachRow(1, rowCount, function (row) {
+    forEachRow(0, rowCount, function (row) {
       forEachColumn(row, c, c + 1, function (cell) {
         const len = cell.textContent.length;
         if (maxLength < len) {
@@ -255,7 +255,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     const values = getCells(r, r + count, 0, columnCount);
     const tbody = getTbody();
     for (let i = 0; i !== count; ++i) {
-      tbody.removeChild(tbody.children[r - 1]);
+      tbody.removeChild(tbody.children[r]);
     }
     rowCount -= count;
     if (r < anchorRow) {
@@ -369,7 +369,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     let firstRow = r;
     let count = 1;
     if ((r < anchorRow && r < selectionRow)
-      || anchorRow < r && selectionRow < r) {
+      || (anchorRow < r && selectionRow < r)) {
       setSelection(r, 0, r, columnCount - 1);
     } else {
       if (anchorRow < selectionRow) {
@@ -415,7 +415,7 @@ function createDataEntryGrid(containerId, rows, columns) {
   }
 
   function forEachRow(rowStart, rowEnd, callback) {
-    const rows = table.getElementsByTagName('TR');
+    const rows = getTbody().getElementsByTagName('TR');
     const rEnd = (rows.length < rowEnd ? rows.length : rowEnd) - rowStart;
     for (var i = 0; i < rEnd; ++i) {
       callback(rows[rowStart + i], i, rowStart + i);
@@ -445,7 +445,7 @@ function createDataEntryGrid(containerId, rows, columns) {
       const rowHeaders = row.getElementsByTagName('TH');
       if (0 < rowHeaders.length) {
         const rh = rowHeaders[0];
-        rh.textContent = thisRow;
+        rh.textContent = thisRow + 1;
         rh.oncontextmenu = function (ev) {
           ev = getEvent(ev);
           const select = rowHeaderMenu(ev, thisRow);
@@ -592,7 +592,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     // fill out extra columns if more are wanted
     for (let c = firstColumn + maxRowLength; c < lastColumn; ++c) {
       const source = c % maxRowLength;
-      for (let r = 0; r != values.length; ++r) {
+      for (let r = 0; r !== values.length; ++r) {
         values[r][c - firstColumn] = values[r][source];
       }
     }
@@ -694,7 +694,7 @@ function createDataEntryGrid(containerId, rows, columns) {
     if (ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) {
       return;
     }
-    if (ev.key === 'ArrowUp' && 1 < anchorRow) {
+    if (ev.key === 'ArrowUp' && 0 < anchorRow) {
       undo.undoable(commitEdit());
       setSelection(anchorRow - 1, anchorColumn, anchorRow - 1, anchorColumn);
       beginEdit();
@@ -732,24 +732,32 @@ function createDataEntryGrid(containerId, rows, columns) {
     if (!ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) {
       return;
     }
-    if (ev.key === 'ArrowUp' && 1 < selectionRow) {
-      setSelection(anchorRow, anchorColumn, selectionRow - 1, selectionColumn);
+    if (ev.key === 'ArrowUp') {
+      if (0 < selectionRow) {
+        setSelection(anchorRow, anchorColumn, selectionRow - 1, selectionColumn);
+      }
       return false;
     }
-    if (ev.key === 'ArrowDown' && selectionRow + 1 < rowCount) {
-      setSelection(anchorRow, anchorColumn, selectionRow + 1, selectionColumn);
+    if (ev.key === 'ArrowDown') {
+      if (selectionRow + 1 < rowCount) {
+        setSelection(anchorRow, anchorColumn, selectionRow + 1, selectionColumn);
+      }
       return false;
     }
-    if (ev.key === 'ArrowLeft' && 0 < selectionColumn) {
-      setSelection(anchorRow, anchorColumn, selectionRow, selectionColumn - 1);
+    if (ev.key === 'ArrowLeft') {
+      if (0 < selectionColumn) {
+        setSelection(anchorRow, anchorColumn, selectionRow, selectionColumn - 1);
+      }
       return false;
     }
-    if (ev.key === 'ArrowRight' && selectionColumn + 1 < columnCount) {
-      setSelection(anchorRow, anchorColumn, selectionRow, selectionColumn + 1);
+    if (ev.key === 'ArrowRight') {
+      if (selectionColumn + 1 < columnCount) {
+        setSelection(anchorRow, anchorColumn, selectionRow, selectionColumn + 1);
+      }
       return false;
     }
   }
-  setCellMouseHandlers(1);
+  setCellMouseHandlers(0);
   table.onkeydown = tableKeyDownHandler;
   table.onkeypress = tableKeyPressHandler;
   table.contentEditable = true;

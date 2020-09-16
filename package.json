@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "babel src --out-file dist/dataentrygrid.min.js --minified --no-comments",
+    "build-debug": "babel src --out-file dist/dataentrygrid.min.js",
     "docs": "documentation readme src/*.js --section=API",
     "test": "npm run build && mocha test/index.js"
   },

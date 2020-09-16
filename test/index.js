@@ -541,7 +541,7 @@ async function assertCellContents(driver, row, column, expectedContents) {
 }
 
 async function getText(cell) {
-  const inputs = await cell.findElements(By.tagName('input'));
+  const inputs = await cell.findElements(By.css('input'));
   if (inputs.length === 0) {
     return await cell.getText();
   }
@@ -629,18 +629,11 @@ async function clearUndo(driver) {
 }
 
 async function getSelection(driver) {
-  const sel = await driver.executeScript('return window.dataEntryGrid.getSelection();');
-  // columns are zero-based but rows are one-based;
-  // this should be corrected.
-  sel.anchorRow -= 1;
-  sel.selectionRow -= 1;
-  return sel;
+  return await driver.executeScript('return window.dataEntryGrid.getSelection();');
 }
 
 async function getRowCount(driver) {
-  // columns are zero-based but rows are one-based;
-  // this should be corrected.
-  return await driver.executeScript('return window.dataEntryGrid.rowCount();') - 1;
+  return await driver.executeScript('return window.dataEntryGrid.rowCount();');
 }
 
 async function getColumnCount(driver) {
@@ -648,18 +641,14 @@ async function getColumnCount(driver) {
 }
 
 async function getCells(driver, startRow, endRow, startColumn, endColumn) {
-  // columns are zero-based but rows are one-based;
-  // this should be corrected.
   return await driver.executeScript(
-    `return window.dataEntryGrid.getCells(${startRow+1}, ${endRow+1},
+    `return window.dataEntryGrid.getCells(${startRow}, ${endRow},
       ${startColumn}, ${endColumn});`);
 }
 
 async function putCells(driver, startRow, endRow, startColumn, endColumn, rows) {
-  // columns are zero-based but rows are one-based;
-  // this should be corrected.
   await driver.executeScript(
-    `window.dataEntryGrid.putCells(${startRow+1}, ${endRow+1},
+    `window.dataEntryGrid.putCells(${startRow}, ${endRow},
       ${startColumn}, ${endColumn}, ${JSON.stringify(rows)});`);
 }
 
