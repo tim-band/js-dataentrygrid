@@ -758,11 +758,30 @@ function createDataEntryGrid(containerId, rows, columns) {
       }
       return here;
     }
+    if (ev.key === 'Home') {
+      return ev.ctrlKey? { row: 0, column: 0 } : { row, column: 0 };
+    }
+    if (ev.key === 'End') {
+      column = columnCount - 1;
+      return ev.ctrlKey? { row: rowCount - 1, column } : { row, column };
+    }
+    if (ev.key === 'PageUp') {
+      return { row: Math.max(0, row - rowsVisibleCount()), column };
+    }
+    if (ev.key === 'PageDown') {
+      return { row: Math.min(rowCount - 1, row + rowsVisibleCount()), column };
+    }
     return null;
   }
 
+  function rowsVisibleCount() {
+    const pixelsToScrollPast = Math.max(0, window.innerHeight - 1);
+    const rowPixels = Math.max(getAnchor().offsetHeight, 1);
+    return Math.floor(pixelsToScrollPast  / rowPixels + 1);
+  }
+
   function moveSelection(ev) {
-    if (!ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) {
+    if (!ev.shiftKey || ev.altKey || ev.metaKey) {
       return;
     }
     const dest = move(ev, selectionRow, selectionColumn);
