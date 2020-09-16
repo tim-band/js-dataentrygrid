@@ -694,69 +694,84 @@ function createDataEntryGrid(containerId, rows, columns) {
     if (ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) {
       return;
     }
-    if (ev.key === 'ArrowUp' && 0 < anchorRow) {
-      undo.undoable(commitEdit());
-      setSelection(anchorRow - 1, anchorColumn, anchorRow - 1, anchorColumn);
-      beginEdit();
-      return false;
-    }
-    if (ev.key === 'ArrowDown' && anchorRow + 1 < rowCount) {
-      undo.undoable(commitEdit());
-      setSelection(anchorRow + 1, anchorColumn, anchorRow + 1, anchorColumn);
-      beginEdit();
-      return false;
-    }
     const inputNotSelected = inputBox &&
       inputBox.selectionStart === inputBox.selectionEnd;
     const inputAtStart = inputNotSelected && inputBox.selectionStart === 0;
     const inputAtEnd = inputNotSelected && inputBox.selectionStart === inputBox.value.length;
-    if (ev.key === 'ArrowLeft' && 0 < anchorColumn
-      && (!inputBox || inputAtStart)) {
+    if (ev.key === 'ArrowLeft') {
+      if (inputBox && !inputAtStart) {
+        return;
+      }
+      if (0 < anchorColumn) {
+        undo.undoable(commitEdit());
+        setSelection(anchorRow, anchorColumn - 1, anchorRow, anchorColumn - 1);
+        returnColumn = anchorColumn;
+        beginEdit();
+      }
+      return false;
+    }
+    if (ev.key === 'ArrowRight') {
+      if (inputBox && !inputAtEnd) {
+        return;
+      }
+      if (anchorColumn + 1 < columnCount) {
+        undo.undoable(commitEdit());
+        setSelection(anchorRow, anchorColumn + 1, anchorRow, anchorColumn + 1);
+        returnColumn = anchorColumn;
+        beginEdit();
+      }
+      return false;
+    }
+    const dest = move(ev, anchorRow, anchorColumn);
+    if (dest) {
       undo.undoable(commitEdit());
-      setSelection(anchorRow, anchorColumn - 1, anchorRow, anchorColumn - 1);
-      returnColumn = anchorColumn;
+      setSelection(dest.row, dest.column, dest.row, dest.column);
       beginEdit();
       return false;
     }
-    if (ev.key === 'ArrowRight' && anchorColumn + 1 < columnCount
-      && (!inputBox || inputAtEnd)) {
-      undo.undoable(commitEdit());
-      setSelection(anchorRow, anchorColumn + 1, anchorRow, anchorColumn + 1);
-      returnColumn = anchorColumn;
-      beginEdit();
-      return false;
+  }
+
+  // returns {row, column} or null if no change
+  function move(ev, row, column) {
+    const here = {row, column};
+    if (ev.key === 'ArrowUp') {
+      if (0 < row) {
+        return { row: row - 1, column };
+      }
+      return here;
     }
+    if (ev.key === 'ArrowDown') {
+      if (row + 1 < rowCount) {
+        return { row: row + 1, column };
+      }
+      return here;
+    }
+    if (ev.key === 'ArrowLeft') {
+      if (0 < column) {
+        return { row, column: column - 1 };
+      }
+      return here;
+    }
+    if (ev.key === 'ArrowRight') {
+      if (column + 1 < columnCount) {
+        return { row, column: column + 1 };
+      }
+      return here;
+    }
+    return null;
   }
 
   function moveSelection(ev) {
     if (!ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) {
       return;
     }
-    if (ev.key === 'ArrowUp') {
-      if (0 < selectionRow) {
-        setSelection(anchorRow, anchorColumn, selectionRow - 1, selectionColumn);
-      }
-      return false;
-    }
-    if (ev.key === 'ArrowDown') {
-      if (selectionRow + 1 < rowCount) {
-        setSelection(anchorRow, anchorColumn, selectionRow + 1, selectionColumn);
-      }
-      return false;
-    }
-    if (ev.key === 'ArrowLeft') {
-      if (0 < selectionColumn) {
-        setSelection(anchorRow, anchorColumn, selectionRow, selectionColumn - 1);
-      }
-      return false;
-    }
-    if (ev.key === 'ArrowRight') {
-      if (selectionColumn + 1 < columnCount) {
-        setSelection(anchorRow, anchorColumn, selectionRow, selectionColumn + 1);
-      }
+    const dest = move(ev, selectionRow, selectionColumn);
+    if (dest) {
+      setSelection(anchorRow, anchorColumn, dest.row, dest.column);
       return false;
     }
   }
+
   setCellMouseHandlers(0);
   table.onkeydown = tableKeyDownHandler;
   table.onkeypress = tableKeyPressHandler;
