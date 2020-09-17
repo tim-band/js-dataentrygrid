@@ -47,10 +47,10 @@ describe('dataentrygrid', function () {
     let table = null;
     this.timeout(8000);
 
-    before(async function() {
+    beforeEach(async function() {
       await doGet();
       table = await getTable(driver);
-    })
+    });
 
     it('can be set with a mouse click', async function() {
       const row = 0;
@@ -95,6 +95,27 @@ describe('dataentrygrid', function () {
       await checkSelection(driver, rc-1, rc-1, cc-1, cc-1);
     });
 
+    it ('moves with the page up/down keys', async function() {
+      await driver.get("http://localhost:3004/test/deg-iframe.html");
+      const frame = await driver.findElement(By.id('deg-frame'));
+      const rect = await frame.getRect();
+      await driver.switchTo().frame(frame);
+      await init(driver, ['one', 'two'], 50);
+      const cell = await getCell(driver, 0, 0).then(c => c.getRect());
+      const visibleRows = Math.ceil(rect.height / cell.height);
+      await clickCell(driver, 0, 0);
+      const tab = await driver.findElement(By.css('table'));
+      await tab.sendKeys(Key.PAGE_DOWN);
+      let sel = await getSelection(driver);
+      assert(Math.abs(sel.anchorRow - visibleRows) < 3);
+      await tab.sendKeys(Key.PAGE_DOWN);
+      sel = await getSelection(driver);
+      assert(Math.abs(sel.anchorRow - visibleRows*2) < 3);
+      await tab.sendKeys(Key.PAGE_UP);
+      sel = await getSelection(driver);
+      assert(Math.abs(sel.anchorRow - visibleRows) < 3);
+    });
+
     it('does not move off the ends', async function() {
       await clickCell(driver, 1, 1);
       await repeatKey(table, 3, Key.ARROW_UP);
@@ -133,6 +154,29 @@ describe('dataentrygrid', function () {
       await checkSelection(driver, 1, 0, 1, 0);
       await table.sendKeys(Key.SHIFT, Key.CONTROL, Key.END);
       await checkSelection(driver, 1, rc-1, 1, cc-1);
+    });
+
+    it ('gets extended with the page up/down keys', async function() {
+      await driver.get("http://localhost:3004/test/deg-iframe.html");
+      const frame = await driver.findElement(By.id('deg-frame'));
+      const rect = await frame.getRect();
+      await driver.switchTo().frame(frame);
+      await init(driver, ['one', 'two'], 50);
+      const cell = await getCell(driver, 0, 0).then(c => c.getRect());
+      const visibleRows = Math.ceil(rect.height / cell.height);
+      await clickCell(driver, 0, 0);
+      const tab = await driver.findElement(By.css('table'));
+      await tab.sendKeys(Key.PAGE_DOWN);
+      let sel = await getSelection(driver);
+      const anchor = sel.anchorRow;
+      await tab.sendKeys(Key.SHIFT, Key.PAGE_DOWN);
+      sel = await getSelection(driver);
+      assert.strictEqual(sel.anchorRow, anchor);
+      assert(Math.abs(sel.selectionRow - visibleRows*2) < 3);
+      await tab.sendKeys(Key.SHIFT, Key.PAGE_UP, Key.PAGE_UP);
+      sel = await getSelection(driver);
+      assert.strictEqual(sel.anchorRow, anchor);
+      assert(sel.selectionRow < 2);
     });
 
     it('does not extend past the ends', async function() {
