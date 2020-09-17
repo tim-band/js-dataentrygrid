@@ -81,6 +81,20 @@ describe('dataentrygrid', function () {
       await checkSelection(driver, 1, 1, 1, 1);
     });
 
+    it('moves with the home/end keys', async function() {
+      const rc = await getRowCount(driver);
+      const cc = await getColumnCount(driver);
+      await clickCell(driver, 1, 1);
+      await table.sendKeys(Key.HOME);
+      await checkSelection(driver, 1, 1, 0, 0);
+      await table.sendKeys(Key.END);
+      await checkSelection(driver, 1, 1, cc-1, cc-1);
+      await table.sendKeys(Key.CONTROL, Key.HOME);
+      await checkSelection(driver, 0, 0, 0, 0);
+      await table.sendKeys(Key.CONTROL, Key.END);
+      await checkSelection(driver, rc-1, rc-1, cc-1, cc-1);
+    });
+
     it('does not move off the ends', async function() {
       await clickCell(driver, 1, 1);
       await repeatKey(table, 3, Key.ARROW_UP);
@@ -105,6 +119,20 @@ describe('dataentrygrid', function () {
       await checkSelection(driver, 1, 1, 1, 0, 'first squeeze');
       await table.sendKeys(Key.SHIFT, Key.ARROW_RIGHT);
       await checkSelection(driver, 1, 1, 1, 1, 'second squeeze');
+    });
+
+    it('gets extended with the home/end keys', async function() {
+      const rc = 3, headers = ['one', 'two', 'three'], cc = headers.length;
+      await init(driver, headers, rc);
+      await clickCell(driver, 1, 1);
+      await table.sendKeys(Key.SHIFT, Key.HOME);
+      await checkSelection(driver, 1, 1, 1, 0);
+      await table.sendKeys(Key.SHIFT, Key.END);
+      await checkSelection(driver, 1, 1, 1, cc-1);
+      await table.sendKeys(Key.SHIFT, Key.CONTROL, Key.HOME);
+      await checkSelection(driver, 1, 0, 1, 0);
+      await table.sendKeys(Key.SHIFT, Key.CONTROL, Key.END);
+      await checkSelection(driver, 1, rc-1, 1, cc-1);
     });
 
     it('does not extend past the ends', async function() {

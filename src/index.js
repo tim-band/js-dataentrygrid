@@ -693,7 +693,7 @@ function createDataEntryGrid(containerId, rows, columns) {
   }
 
   function moveAnchor(ev) {
-    if (ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) {
+    if (ev.shiftKey || ev.altKey || ev.metaKey) {
       return;
     }
     const inputNotSelected = inputBox &&
