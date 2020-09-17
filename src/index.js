@@ -613,7 +613,9 @@ function createDataEntryGrid(containerId, rows, columns) {
     if (!inputBox) {
       beginEdit();
       const cc = ev.charCode || ev.keyCode; // IE8 polyfill
-      inputBox.value = String.fromCharCode(cc);
+      if (31 < cc) {
+        inputBox.value = String.fromCharCode(cc);
+      }
       return preventDefault(ev);
     }
   }

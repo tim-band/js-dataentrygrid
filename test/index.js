@@ -161,6 +161,16 @@ describe('dataentrygrid', function () {
       await assertCellContents(driver, 0, 2, values[2]);
     });
 
+    it('is still there when typing is initiated after drag', async function() {
+      const values = [15.5, 98.3];
+      await putCells(driver, 0, 1, 0, 2, [values]);
+      await mouseDragCells(driver, [[0,1], [0,0]]);
+      await table.sendKeys(Key.RETURN);
+      await table.sendKeys(Key.RETURN);
+      await assertCellContents(driver, 0, 0, values[0]);
+      await assertCellContents(driver, 0, 1, values[1]);
+    });
+
     it('is set via the API', async function() {
       const rows = [[23.4, 43.1], [0.123, 55]];
       await putCells(driver, 0, 2, 0, 2, rows);
