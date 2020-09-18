@@ -49,6 +49,8 @@ describe('dataentrygrid', function () {
 
     beforeEach(async function() {
       await doGet();
+      await init(driver, ['one', 'two', 'three'], 2);
+      await putCells(driver, 0, 2, 0, 3, [[10.1, 20.2, 30.3], [1, 2, 3]])
       table = await getTable(driver);
     });
 

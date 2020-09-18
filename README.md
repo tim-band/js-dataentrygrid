@@ -16,7 +16,7 @@ At the moment, just an HTML proof-of-concept with the following features:
 -   Multiple row and column selections
 -   Copy and paste
 -   Clearing cells with Delete or Backspace
--   Arrow key navigation
+-   Arrow key (plus Home, End and Page keys) navigation
 -   Starting to type forces the input box to open
 -   Copy and paste to and from Excel/LibreOffice
 -   Shift-arrows to extend selection
@@ -33,7 +33,6 @@ but lacking:
         up to the table?
 -   'Cut' and 'Copy' sometimes grayed out on Chrome's context menu,
     because nothing is selected.
--   Home/End/Page up/Page down
 -   Check which browsers it works on
 -   Touch screen support
 

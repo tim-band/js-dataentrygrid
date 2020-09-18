@@ -2,13 +2,13 @@
  * Initialize an HTML table to be a data entry grid.
  * 
  * @param {string}  containerId id of the `table` element you want to make interactive
- * @param {number} rows count of rows already existing in the table
- * @param {number} columns count of columns already existing in the table
+ * @param {Object} headers array of strings to become the new column headers
+ * @param {number} newRowCount number of rows the table should now have
  * @returns {Object} The table object.
  */
-function createDataEntryGrid(containerId, rows, columns) {
-  var rowCount = rows;
-  var columnCount = columns;
+function createDataEntryGrid(containerId, headers, newRowCount) {
+  var rowCount = 0;
+  var columnCount = 0;
   var anchorRow = 0;
   var anchorColumn = 0;
   var selectionRow = 0;
@@ -793,7 +793,6 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
   }
 
-  setCellMouseHandlers(0);
   table.onkeydown = tableKeyDownHandler;
   table.onkeypress = tableKeyPressHandler;
   table.contentEditable = true;
@@ -815,12 +814,13 @@ function createDataEntryGrid(containerId, rows, columns) {
     }
   };
   table.tabIndex = 0;
+  init(headers, newRowCount);
   table.focus();
   return {
     /**
      * Re-initialize the table.
-     * @param {Object} Array of strings to become the new column headers
-     * @param {number} Number of rows the table should now have
+     * @param {Object} headers Array of strings to become the new column headers
+     * @param {number} newRowCount Number of rows the table should now have
      */
     init: init,
     /**

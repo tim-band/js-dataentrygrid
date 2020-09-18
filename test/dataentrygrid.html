@@ -46,34 +46,12 @@ table.data-entry-grid td.anchor {
 <script src="../dist/dataentrygrid.min.js">
 </script>
 </head>
-<body onload="window.dataEntryGrid = createDataEntryGrid('input',2,3)">
+<body onload="window.dataEntryGrid = createDataEntryGrid('input', ['one', 'two', 'three'], 2)">
     <div>
         <button id='undo'>Undo</button>
         <button id='redo'>Redo</button>
     </div>
     <table id='input' class='data-entry-grid'>
-        <thead>
-            <tr>
-                <th></th>
-                <th>One</th>
-                <th>Two</th>
-                <th>Three</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <th>1</th>
-                <td class='anchor'>1</td>
-                <td>2</td>
-                <td>3</td>
-            </tr>
-            <tr>
-                <th>2</th>
-                <td>10.1</td>
-                <td>20.2</td>
-                <td>30.3</td>
-            </tr>
-        </tbody>
     </table>
 </body>
 </html>
