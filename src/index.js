@@ -105,7 +105,12 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       });
     });
     var tbody = createElementArray('TBODY', 'TR', newRowCount, function (tr, i) {
-      createElementArray(tr, 'TH', 1);
+      createElementArray(tr, 'TH', 1, function(th) {
+        const div = createElement('DIV', { width: 0, overflow: 'hidden' });
+        hiddenTextarea = createElement('TEXTAREA');
+        div.appendChild(hiddenTextarea);
+        th.appendChild(div);
+      });
       createElementArray(tr, 'TD', headers.length, function (td, j) {
         if (i == 0 && j == 0) {
           td.setAttribute('class', 'anchor');
