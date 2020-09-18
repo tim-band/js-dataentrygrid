@@ -16,6 +16,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   var returnColumn = 0;
   var inputBox = null;
   var contextMenu = null;
+  var hiddenTextarea = null;
   var localizedText = {
     deleteRow: 'Delete row',
     addRowBefore: 'Add row before',
@@ -51,6 +52,10 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return headers;
   }
 
+  function refocus() {
+    hiddenTextarea.focus();
+  }
+
   // Create a DOM element containing a load of other
   // elements:
   // createElementArray('TR', 'TD', ['one, 'two', 'three'], function(e,x) {e.textContent = x;})
@@ -77,9 +82,24 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return container;
   }
 
+  function createElement(tag, attributes) {
+    const e = document.createElement(tag);
+    for(let k in attributes) {
+      e.setAttribute(k, attributes[k]);
+    }
+    return e;
+  }
+
   function init(headers, newRowCount) {
     var thead = createElementArray('THEAD', 'TR', 1, function (tr) {
-      createElementArray(tr, 'TH', 1);
+      createElementArray(tr, 'TH', 1, function(th) {
+        const div = createElement('DIV', {
+          style: 'width:0;height:0;overflow:hidden'
+        });
+        hiddenTextarea = createElement('TEXTAREA');
+        div.appendChild(hiddenTextarea);
+        th.appendChild(div);
+      });
       createElementArray(tr, 'TH', headers, function (e, x) {
         e.textContent = x;
       });
@@ -112,6 +132,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     columnCount = headers.length;
     undo.clearUndo();
     setCellMouseHandlers(0);
+    refocus();
   }
 
   function removeContextMenu() {
@@ -119,6 +140,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       table.removeChild(contextMenu);
       contextMenu = null;
     }
+    refocus();
   }
 
   function getMouseCoordinates(ev) {
@@ -169,7 +191,6 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   }
 
   function beginEdit() {
-    const box = document.createElement('INPUT');
     const r = anchorRow;
     const c = anchorColumn;
     let maxLength = 3;
@@ -181,7 +202,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         }
       });
     });
-    box.setAttribute('size', maxLength - 2);
+    const box= createElement('INPUT', { size: maxLength - 2 });
     const cell = getCell(r, c);
     const text = cell.textContent;
     box.value = text;
@@ -191,7 +212,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     box.onkeydown = handleInputKey;
     box.onblur = function () {
       undo.undoable(doCommitEdit(r, c, box, text));
-      table.focus();
+      refocus();
     }
     box.setSelectionRange(0, box.value.length);
     box.focus();
@@ -345,22 +366,19 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   }
 
   function deleteRowsOption(count) {
-    const el = document.createElement('OPTION');
-    el.setAttribute('value', 'delete');
+    const el = createElement('OPTION', { value: 'delete' });
     el.textContent = localizedText.deleteRow;
     return el;
   }
 
   function addRowsBeforeOption(count) {
-    const el = document.createElement('OPTION');
-    el.setAttribute('value', 'add-before');
+    const el = createElement('OPTION', { value: 'add-before' });
     el.textContent = localizedText.addRowBefore;
     return el;
   }
 
   function addRowsAfterOption(count) {
-    const el = document.createElement('OPTION');
-    el.setAttribute('value', 'add-after');
+    const el = createElement('OPTION', { value: 'add-after' });
     el.textContent = localizedText.addRowAfter;
     return el;
   }
@@ -380,26 +398,24 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         count = anchorRow - selectionRow + 1;
       }
     }
-    contextMenu = document.createElement('SELECT');
     const id = table.getAttribute('id').concat('-row-menu');
-    contextMenu.setAttribute('id', id);
-    contextMenu.setAttribute('size', 3);
+    contextMenu = createElement('SELECT', { id: id, size: 3 });
     const deleteOption = deleteRowsOption();
     deleteOption.onclick = function () {
       undo.undoable(deleteRows(firstRow, count));
-      table.focus();
+      removeContextMenu();
     }
     contextMenu.appendChild(deleteOption);
     const addBeforeOption = addRowsBeforeOption();
     addBeforeOption.onclick = function () {
       undo.undoable(insertRows(firstRow, count));
-      table.focus();
+      removeContextMenu();
     }
     contextMenu.appendChild(addBeforeOption);
     const addAfterOption = addRowsAfterOption();
     addAfterOption.onclick = function () {
       undo.undoable(insertRows(firstRow + count, count));
-      table.focus();
+      removeContextMenu();
     }
     contextMenu.appendChild(addAfterOption);
     const mousePosition = getMouseCoordinates(ev);
@@ -461,7 +477,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
             // stretch selection over this cell
             if (ev.buttons & 1) {
               setSelection(anchorRow, anchorColumn, thisRow, thisColumn);
-              table.focus();
+              refocus();
               return preventDefault(ev);
             }
           };
@@ -471,7 +487,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
             if (ev.button === 0) {
               undo.undoable(commitEdit());
               setSelection(thisRow, thisColumn, thisRow, thisColumn);
-              table.focus();
+              refocus();
               return preventDefault(ev);
             }
           }
@@ -517,13 +533,13 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   function doUndo() {
     undo.undoable(commitEdit());
     undo.undo();
-    table.focus();
+    refocus();
   }
 
   function doRedo() {
     commitEdit();
     undo.redo();
-    table.focus();
+    refocus();
   }
 
   function clearSelection() {
@@ -625,7 +641,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     const text = copySelection();
     ev.clipboardData.setData('text/plain', text);
     clearSelection();
-    table.focus(); // seems necessary on Firefox
+    refocus(); // seems necessary on Firefox
     return preventDefault(ev);
   }
 
@@ -647,7 +663,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         console.log(err);
       }
     }
-    table.focus(); // seems necessary on Firefox
+    refocus(); // seems necessary on Firefox
     return preventDefault(ev);
   }
 
@@ -655,7 +671,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     ev = getEvent(ev);
     if (contextMenu) {
       if (ev.key === 'Escape') {
-        table.focus();
+        refocus();
       }
       // Select context menu option if enter or space pressed.
       // Surely there must be a better way to do this?
@@ -795,7 +811,6 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
 
   table.onkeydown = tableKeyDownHandler;
   table.onkeypress = tableKeyPressHandler;
-  table.contentEditable = true;
   table.oncut = tableCutHandler;
   table.oncopy = tableCopyHandler;
   table.onpaste = tablePasteHandler;
@@ -815,7 +830,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   };
   table.tabIndex = 0;
   init(headers, newRowCount);
-  table.focus();
+  refocus();
   return {
     /**
      * Re-initialize the table.

@@ -27,10 +27,6 @@ At the moment, just an HTML proof-of-concept with the following features:
 
 but lacking:
 
--   Hiding the blinking text cursor
-    -   perhaps we can have a hidden SELECT or something else
-        focussable within the table to get focus and pass events
-        up to the table?
 -   'Cut' and 'Copy' sometimes grayed out on Chrome's context menu,
     because nothing is selected.
 -   Check which browsers it works on
@@ -70,8 +66,8 @@ Initialize an HTML table to be a data entry grid.
 ### Parameters
 
 -   `containerId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** id of the `table` element you want to make interactive
--   `rows` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** count of rows already existing in the table
--   `columns` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** count of columns already existing in the table
+-   `headers` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** array of strings to become the new column headers
+-   `newRowCount` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** number of rows the table should now have
 
 Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** The table object.
 
@@ -81,8 +77,8 @@ Re-initialize the table.
 
 ### Parameters
 
--   `Array` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** of strings to become the new column headers
--   `Number` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** of rows the table should now have
+-   `headers` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Array of strings to become the new column headers
+-   `newRowCount` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Number of rows the table should now have
 
 ## setText
 

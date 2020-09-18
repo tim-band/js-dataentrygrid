@@ -34,6 +34,7 @@ describe('dataentrygrid', function () {
     });
     server.listen(3004);
     driver = new Builder().forBrowser('firefox').build();
+    //driver = new Builder().forBrowser('chrome').build();
   });
 
   after(function(done) {
@@ -73,13 +74,13 @@ describe('dataentrygrid', function () {
 
     it('moves with the cursor keys', async function() {
       await clickCell(driver, 1, 1);
-      await table.sendKeys(Key.ARROW_UP);
+      await sendKeys(driver, Key.ARROW_UP);
       await checkSelection(driver, 0, 0, 1, 1);
-      await table.sendKeys(Key.ARROW_LEFT, Key.ARROW_LEFT);
+      await sendKeys(driver, Key.ARROW_LEFT, Key.ARROW_LEFT);
       await checkSelection(driver, 0, 0, 0, 0);
-      await table.sendKeys(Key.ARROW_DOWN);
+      await sendKeys(driver, Key.ARROW_DOWN);
       await checkSelection(driver, 1, 1, 0, 0);
-      await table.sendKeys(Key.ARROW_RIGHT, Key.ARROW_RIGHT);
+      await sendKeys(driver, Key.ARROW_RIGHT, Key.ARROW_RIGHT);
       await checkSelection(driver, 1, 1, 1, 1);
     });
 
@@ -87,13 +88,13 @@ describe('dataentrygrid', function () {
       const rc = await getRowCount(driver);
       const cc = await getColumnCount(driver);
       await clickCell(driver, 1, 1);
-      await table.sendKeys(Key.HOME);
+      await sendKeys(driver, Key.HOME);
       await checkSelection(driver, 1, 1, 0, 0);
-      await table.sendKeys(Key.END);
+      await sendKeys(driver, Key.END);
       await checkSelection(driver, 1, 1, cc-1, cc-1);
-      await table.sendKeys(Key.CONTROL, Key.HOME);
+      await sendKeys(driver, Key.CONTROL, Key.HOME);
       await checkSelection(driver, 0, 0, 0, 0);
-      await table.sendKeys(Key.CONTROL, Key.END);
+      await sendKeys(driver, Key.CONTROL, Key.END);
       await checkSelection(driver, rc-1, rc-1, cc-1, cc-1);
     });
 
@@ -106,41 +107,40 @@ describe('dataentrygrid', function () {
       const cell = await getCell(driver, 0, 0).then(c => c.getRect());
       const visibleRows = Math.ceil(rect.height / cell.height);
       await clickCell(driver, 0, 0);
-      const tab = await driver.findElement(By.css('table'));
-      await tab.sendKeys(Key.PAGE_DOWN);
+      await sendKeys(driver, Key.PAGE_DOWN);
       let sel = await getSelection(driver);
       assert(Math.abs(sel.anchorRow - visibleRows) < 3);
-      await tab.sendKeys(Key.PAGE_DOWN);
+      await sendKeys(driver, Key.PAGE_DOWN);
       sel = await getSelection(driver);
       assert(Math.abs(sel.anchorRow - visibleRows*2) < 3);
-      await tab.sendKeys(Key.PAGE_UP);
+      await sendKeys(driver, Key.PAGE_UP);
       sel = await getSelection(driver);
       assert(Math.abs(sel.anchorRow - visibleRows) < 3);
     });
 
     it('does not move off the ends', async function() {
       await clickCell(driver, 1, 1);
-      await repeatKey(table, 3, Key.ARROW_UP);
+      await repeatKey(driver, 3, Key.ARROW_UP);
       await checkSelection(driver, 0, 0, 1, 1);
-      await repeatKey(table, 5, Key.ARROW_LEFT);
+      await repeatKey(driver, 5, Key.ARROW_LEFT);
       await checkSelection(driver, 0, 0, 0, 0);
       const rc = await getRowCount(driver);
-      await repeatKey(table, 2 + rc, Key.ARROW_DOWN);
+      await repeatKey(driver, 2 + rc, Key.ARROW_DOWN);
       await checkSelection(driver, rc-1, rc-1, 0, 0);
       const cc = await getColumnCount(driver);
-      await repeatKey(table, 2 + 2 * cc, Key.ARROW_RIGHT);
+      await repeatKey(driver, 2 + 2 * cc, Key.ARROW_RIGHT);
       await checkSelection(driver, rc-1, rc-1, cc-1, cc-1);
     });
 
     it('gets extended with shift-arrows', async function() {
       await clickCell(driver, 1, 1);
-      await table.sendKeys(Key.SHIFT, Key.ARROW_UP);
+      await sendKeys(driver, Key.SHIFT, Key.ARROW_UP);
       await checkSelection(driver, 1, 0, 1, 1, 'first stretch');
-      await table.sendKeys(Key.SHIFT, Key.ARROW_LEFT);
+      await sendKeys(driver, Key.SHIFT, Key.ARROW_LEFT);
       await checkSelection(driver, 1, 0, 1, 0, 'second stretch');
-      await table.sendKeys(Key.SHIFT, Key.ARROW_DOWN);
+      await sendKeys(driver, Key.SHIFT, Key.ARROW_DOWN);
       await checkSelection(driver, 1, 1, 1, 0, 'first squeeze');
-      await table.sendKeys(Key.SHIFT, Key.ARROW_RIGHT);
+      await sendKeys(driver, Key.SHIFT, Key.ARROW_RIGHT);
       await checkSelection(driver, 1, 1, 1, 1, 'second squeeze');
     });
 
@@ -148,13 +148,13 @@ describe('dataentrygrid', function () {
       const rc = 3, headers = ['one', 'two', 'three'], cc = headers.length;
       await init(driver, headers, rc);
       await clickCell(driver, 1, 1);
-      await table.sendKeys(Key.SHIFT, Key.HOME);
+      await sendKeys(driver, Key.SHIFT, Key.HOME);
       await checkSelection(driver, 1, 1, 1, 0);
-      await table.sendKeys(Key.SHIFT, Key.END);
+      await sendKeys(driver, Key.SHIFT, Key.END);
       await checkSelection(driver, 1, 1, 1, cc-1);
-      await table.sendKeys(Key.SHIFT, Key.CONTROL, Key.HOME);
+      await sendKeys(driver, Key.SHIFT, Key.CONTROL, Key.HOME);
       await checkSelection(driver, 1, 0, 1, 0);
-      await table.sendKeys(Key.SHIFT, Key.CONTROL, Key.END);
+      await sendKeys(driver, Key.SHIFT, Key.CONTROL, Key.END);
       await checkSelection(driver, 1, rc-1, 1, cc-1);
     });
 
@@ -167,15 +167,14 @@ describe('dataentrygrid', function () {
       const cell = await getCell(driver, 0, 0).then(c => c.getRect());
       const visibleRows = Math.ceil(rect.height / cell.height);
       await clickCell(driver, 0, 0);
-      const tab = await driver.findElement(By.css('table'));
-      await tab.sendKeys(Key.PAGE_DOWN);
+      await sendKeys(driver, Key.PAGE_DOWN);
       let sel = await getSelection(driver);
       const anchor = sel.anchorRow;
-      await tab.sendKeys(Key.SHIFT, Key.PAGE_DOWN);
+      await sendKeys(driver, Key.SHIFT, Key.PAGE_DOWN);
       sel = await getSelection(driver);
       assert.strictEqual(sel.anchorRow, anchor);
       assert(Math.abs(sel.selectionRow - visibleRows*2) < 3);
-      await tab.sendKeys(Key.SHIFT, Key.PAGE_UP, Key.PAGE_UP);
+      await sendKeys(driver, Key.SHIFT, Key.PAGE_UP, Key.PAGE_UP);
       sel = await getSelection(driver);
       assert.strictEqual(sel.anchorRow, anchor);
       assert(sel.selectionRow < 2);
@@ -183,15 +182,15 @@ describe('dataentrygrid', function () {
 
     it('does not extend past the ends', async function() {
       await clickCell(driver, 1, 1);
-      await table.sendKeys(Key.SHIFT, Key.ARROW_UP, Key.ARROW_UP);
+      await sendKeys(driver, Key.SHIFT, Key.ARROW_UP, Key.ARROW_UP);
       await checkSelection(driver, 1, 0, 1, 1, 'first stretch');
-      await table.sendKeys(Key.SHIFT, Key.ARROW_LEFT, Key.ARROW_LEFT);
+      await sendKeys(driver, Key.SHIFT, Key.ARROW_LEFT, Key.ARROW_LEFT);
       await checkSelection(driver, 1, 0, 1, 0, 'second stretch');
       const rc = await getRowCount(driver);
-      await repeatKey(table, 2 + rc, Key.ARROW_DOWN, Key.SHIFT);
+      await repeatKey(driver, 2 + rc, Key.ARROW_DOWN, Key.SHIFT);
       await checkSelection(driver, 1, rc-1, 1, 0, 'first squeeze');
       const cc = await getColumnCount(driver);
-      await repeatKey(table, 2 + 2 * cc, Key.ARROW_RIGHT, Key.SHIFT);
+      await repeatKey(driver, 2 + 2 * cc, Key.ARROW_RIGHT, Key.SHIFT);
       await checkSelection(driver, 1, rc-1, 1, cc-1, 'second squeeze');
     });
   });
@@ -208,17 +207,17 @@ describe('dataentrygrid', function () {
       // finish typing with return, highlight moves down
       await clickCell(driver, 0, 0);
       const c1 = '6123.4';
-      await table.sendKeys(c1, Key.RETURN);
+      await sendKeys(driver, c1, Key.RETURN);
       await checkSelection(driver, 1, 1, 0, 0, 'return (down)');
       await assertCellContents(driver, 0, 0, c1);
       const c2 = '45.6';
       // finish typing with tab, highlight moves right
-      await table.sendKeys(c2, Key.TAB);
+      await sendKeys(driver, c2, Key.TAB);
       await checkSelection(driver, 1, 1, 1, 1, 'tab (right)');
       await assertCellContents(driver, 1, 0, c2);
       const c3 = '7.8';
       // finish typing with return again, highlight moves down and left
-      await table.sendKeys(c3, Key.RETURN);
+      await sendKeys(driver, c3, Key.RETURN);
       await checkSelection(driver, 2, 2, 0, 0, 'return (down to start of line)');
       await assertCellContents(driver, 1, 1, c3);
     });
@@ -226,7 +225,7 @@ describe('dataentrygrid', function () {
     it('is still there when typing is initiated', async function() {
       const values = ['432', '4.5', '7.9'];
       await clickCell(driver, 0, 0);
-      await table.sendKeys(values[0], Key.TAB, values[1], Key.TAB, values[2], Key.RETURN);
+      await sendKeys(driver, values[0], Key.TAB, values[1], Key.TAB, values[2], Key.RETURN);
       await clickCell(driver, 0, 2);
       await clickCell(driver, 0, 1);
       await clickCell(driver, 0, 0);
@@ -239,8 +238,8 @@ describe('dataentrygrid', function () {
       const values = [15.5, 98.3];
       await putCells(driver, 0, 1, 0, 2, [values]);
       await mouseDragCells(driver, [[0,1], [0,0]]);
-      await table.sendKeys(Key.RETURN);
-      await table.sendKeys(Key.RETURN);
+      await sendKeys(driver, Key.RETURN);
+      await sendKeys(driver, Key.RETURN);
       await assertCellContents(driver, 0, 0, values[0]);
       await assertCellContents(driver, 0, 1, values[1]);
     });
@@ -260,8 +259,8 @@ describe('dataentrygrid', function () {
       const rows = [['23.4', '43.1'], ['0.123', '55']];
       await putCells(driver, 0, 2, 0, 2, rows);
       await clickCell(driver, 0, 0);
-      await table.sendKeys(Key.SHIFT, Key.RIGHT, Key.DOWN);
-      await table.sendKeys(Key.CONTROL, 'c');
+      await sendKeys(driver, Key.SHIFT, Key.RIGHT, Key.DOWN);
+      await sendKeys(driver, Key.CONTROL, 'c');
       const copied = clipboardy.readSync();
       const expected = cellsToText(rows);
       assert.strictEqual(copied, expected, 'clipboard text did not match entered text after copy');
@@ -271,8 +270,8 @@ describe('dataentrygrid', function () {
       const rows = [['5.6', '12.8'], ['23', '99.01']];
       await putCells(driver, 0, 2, 0, 2, rows);
       await clickCell(driver, 0, 0);
-      await table.sendKeys(Key.SHIFT, Key.RIGHT, Key.DOWN);
-      await table.sendKeys(Key.CONTROL, 'x');
+      await sendKeys(driver, Key.SHIFT, Key.RIGHT, Key.DOWN);
+      await sendKeys(driver, Key.CONTROL, 'x');
       const copied = clipboardy.readSync();
       const expected = cellsToText(rows);
       assert.strictEqual(copied, expected, 'clipboard text did not match entered text after cut');
@@ -286,7 +285,7 @@ describe('dataentrygrid', function () {
       const rows = [['6', '48.3'], ['30', '12.1']];
       clipboardy.writeSync(cellsToText(rows));
       await clickCell(driver, 0, 0);
-      await table.sendKeys(Key.CONTROL, 'v');
+      await sendKeys(driver, Key.CONTROL, 'v');
       const actual = await getCells(driver, 0, 2, 0, 2);
       assert.deepStrictEqual(actual, rows, 'cell text did not match pasted text');
     });
@@ -296,22 +295,22 @@ describe('dataentrygrid', function () {
       await putCells(driver, 0, 2, 0, 2, rows);
       await clickCell(driver, 0, 0);
       const c0 = '654';
-      await table.sendKeys(c0);
+      await sendKeys(driver, c0);
       const c1 = '876';
       await clickCell(driver, 1, 1);
-      await table.sendKeys(c1, Key.TAB);
+      await sendKeys(driver, c1, Key.TAB);
       await assertCellContents(driver, 0, 0, c0);
       await assertCellContents(driver, 1, 1, c1);
-      await table.sendKeys(Key.CONTROL, 'z');
+      await sendKeys(driver, Key.CONTROL, 'z');
       await assertCellContents(driver, 0, 0, c0);
       await assertCellContents(driver, 1, 1, rows[1][1]);
-      await table.sendKeys(Key.CONTROL, 'z');
+      await sendKeys(driver, Key.CONTROL, 'z');
       await assertCellContents(driver, 0, 0, rows[0][0]);
       await assertCellContents(driver, 1, 1, rows[1][1]);
-      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await sendKeys(driver, Key.CONTROL, Key.SHIFT, 'z');
       await assertCellContents(driver, 0, 0, c0);
       await assertCellContents(driver, 1, 1, rows[1][1]);
-      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await sendKeys(driver, Key.CONTROL, Key.SHIFT, 'z');
       await assertCellContents(driver, 0, 0, c0);
       await assertCellContents(driver, 1, 1, c1);
     });
@@ -321,12 +320,12 @@ describe('dataentrygrid', function () {
       await putCells(driver, 0, 1, 0, 1, rows);
       await clickCell(driver, 0, 0);
       const c0 = '654';
-      await table.sendKeys(c0);
-      await table.sendKeys(Key.CONTROL, 'z');
+      await sendKeys(driver, c0);
+      await sendKeys(driver, Key.CONTROL, 'z');
       await assertCellContents(driver, 0, 0, rows[0][0]);
-      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await sendKeys(driver, Key.CONTROL, Key.SHIFT, 'z');
       await assertCellContents(driver, 0, 0, c0);
-      await table.sendKeys(Key.CONTROL, 'z');
+      await sendKeys(driver, Key.CONTROL, 'z');
       await assertCellContents(driver, 0, 0, rows[0][0]);
     });
 
@@ -336,30 +335,30 @@ describe('dataentrygrid', function () {
       await clearUndo(driver);
       await clickCell(driver, 0, 0);
       const c0 = '654';
-      await table.sendKeys(c0);
+      await sendKeys(driver, c0);
       const c1 = '876';
       await clickCell(driver, 1, 1);
-      await table.sendKeys(c1, Key.TAB);
+      await sendKeys(driver, c1, Key.TAB);
       await assertCellContents(driver, 0, 0, c0);
       await assertCellContents(driver, 1, 1, c1);
-      await table.sendKeys(Key.CONTROL, 'z');
-      await table.sendKeys(Key.CONTROL, 'z');
-      await table.sendKeys(Key.CONTROL, 'z');
-      await table.sendKeys(Key.CONTROL, 'z');
-      await table.sendKeys(Key.CONTROL, 'z');
+      await sendKeys(driver, Key.CONTROL, 'z');
+      await sendKeys(driver, Key.CONTROL, 'z');
+      await sendKeys(driver, Key.CONTROL, 'z');
+      await sendKeys(driver, Key.CONTROL, 'z');
+      await sendKeys(driver, Key.CONTROL, 'z');
       await assertCellContents(driver, 0, 0, rows[0][0]);
       await assertCellContents(driver, 1, 1, rows[1][1]);
-      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await sendKeys(driver, Key.CONTROL, Key.SHIFT, 'z');
       await assertCellContents(driver, 0, 0, c0);
       await assertCellContents(driver, 1, 1, rows[1][1]);
-      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
-      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
-      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
-      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
-      await table.sendKeys(Key.CONTROL, Key.SHIFT, 'z');
+      await sendKeys(driver, Key.CONTROL, Key.SHIFT, 'z');
+      await sendKeys(driver, Key.CONTROL, Key.SHIFT, 'z');
+      await sendKeys(driver, Key.CONTROL, Key.SHIFT, 'z');
+      await sendKeys(driver, Key.CONTROL, Key.SHIFT, 'z');
+      await sendKeys(driver, Key.CONTROL, Key.SHIFT, 'z');
       await assertCellContents(driver, 0, 0, c0);
       await assertCellContents(driver, 1, 1, c1);
-      await table.sendKeys(Key.CONTROL, 'z');
+      await sendKeys(driver, Key.CONTROL, 'z');
       await assertCellContents(driver, 0, 0, c0);
       await assertCellContents(driver, 1, 1, rows[1][1]);
     });
@@ -428,7 +427,7 @@ describe('dataentrygrid', function () {
       const rc = await getRowCount(driver);
       await clickCell(driver, 0, 0);
       const contents = '32.1';
-      table.sendKeys(contents);
+      sendKeys(driver, contents);
       await rowHeaderMenuSelect(driver, 0, 'add-before');
       const rc2 = await getRowCount(driver);
       assert.strictEqual(rc2, rc + 1,
@@ -436,7 +435,7 @@ describe('dataentrygrid', function () {
       await assertCellContents(driver, 1, 0, contents);
       await assertCellContents(driver, 0, 0, '');
       await clickCell(driver, 0, 0);
-      table.sendKeys(Key.SHIFT, Key.ARROW_DOWN);
+      sendKeys(driver, Key.SHIFT, Key.ARROW_DOWN);
       await rowHeaderMenuSelect(driver, 1, 'add-after');
       const rc3 = await getRowCount(driver);
       assert.strictEqual(rc3, rc2 + 2,
@@ -449,12 +448,12 @@ describe('dataentrygrid', function () {
     it('can be deleted', async function() {
       // ensure we have at least four rows
       await clickCell(driver, 0, 0);
-      await repeatKey(table, 4, Key.RETURN);
+      await repeatKey(driver, 4, Key.RETURN);
       const rows = [['43'], ['509'], ['15'], ['88']];
       await putCells(driver, 0, 4, 0, 1, rows);
       const rc = await getRowCount(driver);
       await clickCell(driver, 1, 1);
-      table.sendKeys(Key.SHIFT, Key.ARROW_DOWN);
+      sendKeys(driver, Key.SHIFT, Key.ARROW_DOWN);
       await rowHeaderMenuSelect(driver, 1, 'delete');
       const rc2 = await getRowCount(driver);
       assert.strictEqual(rc2, rc - 2,
@@ -468,7 +467,7 @@ describe('dataentrygrid', function () {
       await clickCell(driver, rc - 1, 0);
       const firstContents = '123';
       const secondContents = '456';
-      await table.sendKeys(firstContents, Key.RETURN, secondContents);
+      await sendKeys(driver, firstContents, Key.RETURN, secondContents);
       const rc2 = await getRowCount(driver);
       assert.strictEqual(rc2, rc+1,
         'row count (from API) does not increase when typing off the bottom row');
@@ -478,11 +477,9 @@ describe('dataentrygrid', function () {
   });
 
   describe('row header context menu', function() {
-    let table = null;
 
     before(async function () {
       await doGet();
-      table = await getTable(driver);
     });
 
     it('can have its option text set', async function() {
@@ -510,11 +507,9 @@ describe('dataentrygrid', function () {
   });
 
   describe('control buttons', function() {
-    let table = null;
 
     beforeEach(async function () {
       await doGet();
-      table = await getTable(driver);
     });
 
     it('can be set', async function() {
@@ -525,7 +520,7 @@ describe('dataentrygrid', function () {
       await putCells(driver, 0, 2, 0, 2, rows);
       const c1 = '672';
       await clickCell(driver, 1, 1);
-      await table.sendKeys(c1, Key.TAB);
+      await sendKeys(driver, c1, Key.TAB);
       await assertCellContents(driver, 0, 0, rows[0][0]);
       await assertCellContents(driver, 1, 1, c1);
       await undoButton.click();
@@ -549,12 +544,12 @@ describe('dataentrygrid', function () {
       await assertDisabled(driver, 'redo');
       await clickCell(driver, 0, 0);
       const c0 = '143';
-      await table.sendKeys(c0, Key.RETURN);
+      await sendKeys(driver, c0, Key.RETURN);
       await assertEnabled(driver, 'undo');
       await assertDisabled(driver, 'redo');
       const c1 = '672';
       await clickCell(driver, 1, 1);
-      await table.sendKeys(c1, Key.TAB);
+      await sendKeys(driver, c1, Key.TAB);
       await assertEnabled(driver, 'undo');
       await assertDisabled(driver, 'redo');
       await undoButton.click();
@@ -632,7 +627,8 @@ async function getText(cell) {
   return await inputs[0].getAttribute('value');
 }
 
-async function repeatKey(element, times, key, modifier) {
+async function repeatKey(driver, times, key, modifier) {
+  const element = await focus(driver);
   modifier = modifier? [modifier] : [];
   await element.sendKeys.apply(element, modifier.concat(repeat(times, key)));
 }
@@ -643,6 +639,15 @@ function repeat(times, x) {
 
 function getTable(driver) {
   return driver.findElement(By.id('input'));
+}
+
+async function focus(driver) {
+  return await driver.switchTo().activeElement();
+}
+
+async function sendKeys(driver, ...keys) {
+  const element = await focus(driver);
+  await element.sendKeys.apply(element, keys);
 }
 
 async function checkSelection(driver, startRow, endRow, startColumn, endColumn, name) {
