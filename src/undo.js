@@ -60,11 +60,13 @@ function undoSystem() {
     undoStack = [];
   }
 
-  function setButtons(anUndoButton, aRedoButton) {
+  function setButtons(anUndoButton, aRedoButton, afterFn) {
     undoButton = anUndoButton;
     redoButton = aRedoButton;
     if (undoButton) {
-      undoButton.onclick = undo;
+      undoButton.onclick = afterFn?
+          function() { undo(); afterFn(); }
+          : undo;
       if (undoStack.length === 0) {
         undoButton.setAttribute('disabled', '');
       } else {
@@ -72,7 +74,9 @@ function undoSystem() {
       }
     }
     if (redoButton) {
-      redoButton.onclick = redo;
+      redoButton.onclick = afterFn?
+          function() { redo(); afterFn(); }
+          : redo;
       if (redoStack.length === 0) {
         redoButton.setAttribute('disabled', '');
       } else {

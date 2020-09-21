@@ -211,7 +211,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     commitEdit = function () { return doCommitEdit(r, c, box, text); }
     box.onkeydown = handleInputKey;
     box.onblur = function () {
-      undo.undoable(doCommitEdit(r, c, box, text));
+      undo.undoable(commitEdit(r, c, box, text));
       refocus();
     }
     box.setSelectionRange(0, box.value.length);
@@ -286,9 +286,6 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         anchorRow = r;
       }
     }
-    if (rowCount <= anchorRow) {
-      anchorRow = rowCount - 1;
-    }
     if (r < selectionRow) {
       if (r + count < selectionRow) {
         selectionRow -= count;
@@ -298,6 +295,10 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     }
     if (rowCount <= selectionRow) {
       selectionRow = rowCount - 1;
+    }
+    if (rowCount <= anchorRow) {
+      anchorRow = rowCount - 1;
+      setSelection(anchorRow, anchorColumn, selectionRow, selectionColumn);
     }
     setCellMouseHandlers(r);
     return function () {
@@ -527,6 +528,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   function putCellsAction(rowStart, rowEnd, columnStart, columnEnd, values) {
     const oldValues = getCells(rowStart, rowEnd, columnStart, columnEnd);
     putCells(rowStart, rowEnd, columnStart, columnEnd, values);
+    setSelection(rowStart, columnStart, rowEnd - 1, columnEnd - 1);
     return function () { return putCellsAction(rowStart, rowEnd, columnStart, columnEnd, oldValues) };
   }
 
@@ -859,7 +861,9 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @param {HTMLButtonElement} redoButton Button to set as redo
      * button (or null)
      */
-    setButtons: (undoButton, redoButton) => undo.setButtons(undoButton, redoButton),
+    setButtons: function (undoButton, redoButton) {
+      undo.setButtons(undoButton, redoButton, refocus)
+    },
     /**
      * Gets the position and size of the selection.
      * @returns {Object} the position of the selection given by the

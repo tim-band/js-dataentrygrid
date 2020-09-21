@@ -1,13 +1,34 @@
 "use strict";
 
-const { describe, before, beforeEach, after, it } = require('mocha');
+const { describe, before, beforeEach, after, afterEach, it } = require('mocha');
 const assert = require('assert');
 const { Builder, By, Key, until } = require('selenium-webdriver');
 const http = require('http');
 const fs = require('fs');
 const clipboardy = require("clipboardy");
 
-describe('dataentrygrid', function () {
+function findArg(a) {
+  for (let i = 1; i < process.argv.length; ++i) {
+    const ar = process.argv[i];
+    const equals = ar.search("=");
+    if (equals < 0) {
+      if (ar === a) {
+        ++i;
+        return args[i];
+      }
+    } else {
+      if (ar.slice(0,equals) === a) {
+        return ar.slice(equals+1);
+      }
+    }
+  }
+  return null;
+}
+
+const browserArg = findArg('--browser');
+const browser = browserArg? browserArg : 'chrome';
+
+describe('dataentrygrid', async function () {
   let server = null;
   let driver = null;
 
@@ -15,44 +36,47 @@ describe('dataentrygrid', function () {
     await driver.get("http://localhost:3004/test/dataentrygrid.html");
   }
 
-  before(async function () {
-    server = await http.createServer(function(req, resp) {
-      fs.readFile("." + req.url, function(error, content) {
-        let code = 200;
-        if (error) {
-          if (error.code === "ENOENT") {
-            code = 404;
-            content = "404";
-          } else {
-            code = 500;
-            content = "500";
+  before(function () {
+    this.timeout(5000);
+    return new Promise(function (resolve, reject) {
+      server = http.createServer(function(req, resp) {
+        fs.readFile("." + req.url, function(error, content) {
+          let code = 200;
+          if (error) {
+            if (error.code === "ENOENT") {
+              code = 404;
+              content = "404";
+            } else {
+              code = 500;
+              content = "500";
+            }
           }
-        }
-        resp.writeHead(code, {"Content-Type": "text/html"});
-        resp.end(content, "utf-8");
+          resp.writeHead(code, {"Content-Type": "text/html"});
+          resp.end(content, "utf-8");
+        });
+      });
+      server.listen(3004);
+      new Builder().forBrowser(browser).build().then(d => {
+        driver = d;
+        resolve();
       });
     });
-    server.listen(3004);
-    driver = new Builder().forBrowser('firefox').build();
-    //driver = new Builder().forBrowser('chrome').build();
   });
 
   after(function(done) {
     this.timeout(9000);
-    server.close(function() {
-      driver.quit().then(function() { done() });
-    });
+    driver.quit().then(() =>
+      server.close(() =>
+        done()));
   });
 
-  describe('highlight (visual and API)', function () {
-    let table = null;
+  describe('highlight (visual and API)', async function () {
     this.timeout(8000);
 
     beforeEach(async function() {
       await doGet();
       await init(driver, ['one', 'two', 'three'], 2);
       await putCells(driver, 0, 2, 0, 3, [[10.1, 20.2, 30.3], [1, 2, 3]])
-      table = await getTable(driver);
     });
 
     it('can be set with a mouse click', async function() {
@@ -195,12 +219,11 @@ describe('dataentrygrid', function () {
     });
   });
 
-  describe('cell content text', function() {
-    let table = null;
+  describe('cell content text', async function() {
+    this.timeout(8000);
 
-    before(async function () {
+    beforeEach(async function () {
       await doGet();
-      table = await getTable(driver);
     });
 
     it('is set with typing', async function() {
@@ -364,12 +387,10 @@ describe('dataentrygrid', function () {
     });
   });
 
-  describe('column headers', function() {
-    let table = null;
+  describe('column headers', async function() {
 
-    before(async function () {
+    beforeEach(async function () {
       await doGet();
-      table = await getTable(driver);
     });
 
     it('can be set via the API', async function() {
@@ -415,12 +436,10 @@ describe('dataentrygrid', function () {
     });
   });
 
-  describe('rows', function() {
-    let table = null;
+  describe('rows', async function() {
 
-    before(async function () {
+    beforeEach(async function () {
       await doGet();
-      table = await getTable(driver);
     });
 
     it('can be added', async function() {
@@ -476,9 +495,9 @@ describe('dataentrygrid', function () {
     });
   });
 
-  describe('row header context menu', function() {
+  describe('row header context menu', async function() {
 
-    before(async function () {
+    beforeEach(async function () {
       await doGet();
     });
 
@@ -506,7 +525,7 @@ describe('dataentrygrid', function () {
     });
   });
 
-  describe('control buttons', function() {
+  describe('control buttons', async function() {
 
     beforeEach(async function () {
       await doGet();
@@ -515,7 +534,7 @@ describe('dataentrygrid', function () {
     it('can be set', async function() {
       const undoButton = await driver.findElement(By.id('undo'));
       const redoButton = await driver.findElement(By.id('redo'));
-      setButtons(driver, undoButton, redoButton);
+      await setButtons(driver, undoButton, redoButton);
       const rows = [['55.5', '66.6'], ['77.7', '88.8']];
       await putCells(driver, 0, 2, 0, 2, rows);
       const c1 = '672';
@@ -534,7 +553,7 @@ describe('dataentrygrid', function () {
     it('get disabled appropriately', async function() {
       const undoButton = await driver.findElement(By.id('undo'));
       const redoButton = await driver.findElement(By.id('redo'));
-      setButtons(driver, undoButton, redoButton);
+      await setButtons(driver, undoButton, redoButton);
       await assertDisabled(driver, 'undo');
       await assertDisabled(driver, 'redo');
       const rows = [['55.5', '66.6'], ['77.7', '88.8']];
@@ -671,19 +690,19 @@ async function checkSelection(driver, startRow, endRow, startColumn, endColumn, 
     for (let c = 0; c !== columnCount; ++c) {
       const cell = await getCell(driver, r, c);
       if (minR <= r && r <= maxR && minC <= c && c <= maxC) {
-        assertHasClass(cell, 'selected',
+        await assertHasClass(cell, 'selected',
           '('+r+','+c+') should have been selected');
       }
       else {
-        assertHasNoClass(cell, 'selected',
+        await assertHasNoClass(cell, 'selected',
           '('+r+','+c+') should not have been selected');
       }
       if (r === startRow && c === startColumn) {
-        assertHasClass(cell, 'anchor',
+        await assertHasClass(cell, 'anchor',
           '('+r+','+c+') should have been the anchor');
       }
       else {
-        assertHasNoClass(cell, 'anchor',
+        await assertHasNoClass(cell, 'anchor',
           '('+r+','+c+') should not have been the anchor');
       }
     }
