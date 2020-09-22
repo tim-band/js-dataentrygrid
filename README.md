@@ -29,7 +29,7 @@ but lacking:
 
 -   'Cut' and 'Copy' sometimes grayed out on Chrome's context menu,
     because nothing is selected.
--   Check which browsers it works on
+-   Check that it works on IE and Edge
 -   Touch screen support
 
 # API

@@ -96,12 +96,14 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         const div = createElement('DIV', {
           style: 'width:0;height:0;overflow:hidden'
         });
-        hiddenTextarea = createElement('TEXTAREA');
+        hiddenTextarea = createElement('TEXTAREA', { tabindex: '-1' });
         div.appendChild(hiddenTextarea);
+        th.onclick = refocus;
         th.appendChild(div);
       });
       createElementArray(tr, 'TH', headers, function (e, x) {
         e.textContent = x;
+        e.onclick = refocus;
       });
     });
     var tbody = createElementArray('TBODY', 'TR', newRowCount, function (tr, i) {
@@ -463,6 +465,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       if (0 < rowHeaders.length) {
         const rh = rowHeaders[0];
         rh.textContent = thisRow + 1;
+        rh.onclick = refocus;
         rh.oncontextmenu = function (ev) {
           ev = getEvent(ev);
           const select = rowHeaderMenu(ev, thisRow);
@@ -830,7 +833,6 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       return preventDefault(ev);
     }
   };
-  table.tabIndex = 0;
   init(headers, newRowCount);
   refocus();
   return {

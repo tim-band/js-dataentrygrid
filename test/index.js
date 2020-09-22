@@ -37,7 +37,7 @@ describe('dataentrygrid', async function () {
   }
 
   before(function () {
-    this.timeout(5000);
+    this.timeout(15000);
     return new Promise(function (resolve, reject) {
       server = http.createServer(function(req, resp) {
         fs.readFile("." + req.url, function(error, content) {
@@ -583,6 +583,36 @@ describe('dataentrygrid', async function () {
       await redoButton.click();
       await assertEnabled(driver, 'undo');
       await assertDisabled(driver, 'redo');
+    });
+  });
+
+  describe('focus', async function() {
+
+    beforeEach(async function() {
+      await doGet();
+      await driver.findElement(By.id('other')).click();
+    });
+
+    afterEach(async function() {
+      const text = '23';
+      await sendKeys(driver, text, Key.RETURN);
+      await assertCellContents(driver, 0, 0, text);
+    });
+
+    it('returns with tab', async function() {
+      await sendKeys(driver, Key.SHIFT, Key.TAB);
+    });
+
+    it('returns with click on table header', async function() {
+      await driver.findElement(By.css('#input thead th:nth-child(1)')).click();
+    });
+
+    it('returns with click on column headers', async function() {
+      await driver.findElement(By.css('#input thead th:nth-child(2)')).click();
+    });
+
+    it('returns with click on row headers', async function() {
+      await driver.findElement(By.css('#input tbody th')).click();
     });
   });
 });
