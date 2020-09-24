@@ -6,6 +6,8 @@ const { Builder, By, Key, until } = require('selenium-webdriver');
 const http = require('http');
 const fs = require('fs');
 const clipboardy = require("clipboardy");
+// Maybe one day these tests will work on IE
+const { Options } = require('selenium-webdriver/ie');
 
 function findArg(a) {
   for (let i = 1; i < process.argv.length; ++i) {
@@ -14,7 +16,7 @@ function findArg(a) {
     if (equals < 0) {
       if (ar === a) {
         ++i;
-        return args[i];
+        return process.argv[i];
       }
     } else {
       if (ar.slice(0,equals) === a) {
@@ -55,10 +57,14 @@ describe('dataentrygrid', async function () {
           resp.end(content, "utf-8");
         });
       });
-      server.listen(3004);
-      new Builder().forBrowser(browser).build().then(d => {
-        driver = d;
-        resolve();
+      server.listen(3004, function() {
+        new Builder()
+            .forBrowser(browser)
+            .setIeOptions(new Options().requireWindowFocus(true))
+            .build().then(d => {
+          driver = d;
+          resolve();
+        });
       });
     });
   });
@@ -70,7 +76,7 @@ describe('dataentrygrid', async function () {
         done()));
   });
 
-  describe('highlight (visual and API)', async function () {
+  describe('highlight (visual and API)', function () {
     this.timeout(8000);
 
     beforeEach(async function() {
@@ -219,7 +225,7 @@ describe('dataentrygrid', async function () {
     });
   });
 
-  describe('cell content text', async function() {
+  describe('cell content text', function() {
     this.timeout(8000);
 
     beforeEach(async function () {
@@ -387,7 +393,7 @@ describe('dataentrygrid', async function () {
     });
   });
 
-  describe('column headers', async function() {
+  describe('column headers', function() {
 
     beforeEach(async function () {
       await doGet();
@@ -436,7 +442,7 @@ describe('dataentrygrid', async function () {
     });
   });
 
-  describe('rows', async function() {
+  describe('rows', function() {
 
     beforeEach(async function () {
       await doGet();
@@ -444,9 +450,8 @@ describe('dataentrygrid', async function () {
 
     it('can be added', async function() {
       const rc = await getRowCount(driver);
-      await clickCell(driver, 0, 0);
       const contents = '32.1';
-      sendKeys(driver, contents);
+      await sendKeys(driver, contents);
       await rowHeaderMenuSelect(driver, 0, 'add-before');
       const rc2 = await getRowCount(driver);
       assert.strictEqual(rc2, rc + 1,
@@ -454,7 +459,7 @@ describe('dataentrygrid', async function () {
       await assertCellContents(driver, 1, 0, contents);
       await assertCellContents(driver, 0, 0, '');
       await clickCell(driver, 0, 0);
-      sendKeys(driver, Key.SHIFT, Key.ARROW_DOWN);
+      await sendKeys(driver, Key.SHIFT, Key.ARROW_DOWN);
       await rowHeaderMenuSelect(driver, 1, 'add-after');
       const rc3 = await getRowCount(driver);
       assert.strictEqual(rc3, rc2 + 2,
@@ -472,7 +477,7 @@ describe('dataentrygrid', async function () {
       await putCells(driver, 0, 4, 0, 1, rows);
       const rc = await getRowCount(driver);
       await clickCell(driver, 1, 1);
-      sendKeys(driver, Key.SHIFT, Key.ARROW_DOWN);
+      await sendKeys(driver, Key.SHIFT, Key.ARROW_DOWN);
       await rowHeaderMenuSelect(driver, 1, 'delete');
       const rc2 = await getRowCount(driver);
       assert.strictEqual(rc2, rc - 2,
@@ -495,7 +500,7 @@ describe('dataentrygrid', async function () {
     });
   });
 
-  describe('row header context menu', async function() {
+  describe('row header context menu', function() {
 
     beforeEach(async function () {
       await doGet();
@@ -525,7 +530,7 @@ describe('dataentrygrid', async function () {
     });
   });
 
-  describe('control buttons', async function() {
+  describe('control buttons', function() {
 
     beforeEach(async function () {
       await doGet();
@@ -586,7 +591,7 @@ describe('dataentrygrid', async function () {
     });
   });
 
-  describe('focus', async function() {
+  describe('focus', function() {
 
     beforeEach(async function() {
       await doGet();
@@ -796,9 +801,8 @@ async function getColumnHeaders(driver) {
 
 async function mouseDragCells(driver, coords) {
   let [r,c] = coords[0];
-  let sel = cellSelector(r,c);
   const element = getCell(driver, r, c);
-  let actions = driver.actions({bridge: true}).move({origin:element}).press();
+  let actions = driver.actions({bridge: true}).move({origin: element}).press();
   for (let i = 1; i != coords.length; ++i) {
     [r,c] = coords[i];
     const el = getCell(driver, r, c);
