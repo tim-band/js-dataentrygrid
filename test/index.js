@@ -283,6 +283,15 @@ describe('dataentrygrid', async function () {
       }
     });
 
+    it('can be got in a column', async function() {
+      const values = [[3,4.3,6], [1,0.1,2], [9,9.4,7]];
+      await init(driver, ['alpha', 'beta', 'gamma'], values);
+      const col = 1;
+      const column = await getColumn(driver, col);
+      const expected = values.map(r => String(r[col]));
+      assert.deepStrictEqual(column, expected);
+    });
+
     it('can be copied to the clipboard', async function() {
       const rows = [['23.4', '43.1'], ['0.123', '55']];
       await putCells(driver, 0, 2, 0, 2, rows);
@@ -786,6 +795,11 @@ async function getCells(driver, startRow, endRow, startColumn, endColumn) {
   return await driver.executeScript(
     `return window.dataEntryGrid.getCells(${startRow}, ${endRow},
       ${startColumn}, ${endColumn});`);
+}
+
+async function getColumn(driver, column) {
+  return await driver.executeScript(
+    `return window.dataEntryGrid.getColumn(${column});`);
 }
 
 async function putCells(driver, startRow, endRow, startColumn, endColumn, rows) {

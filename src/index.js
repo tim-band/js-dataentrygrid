@@ -510,17 +510,20 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     });
   }
 
+  function getCellContents(cell) {
+    const inputs = cell.getElementsByTagName('INPUT');
+    if (0 < inputs.length) {
+      return inputs[0].value;
+    }
+    return cell.textContent;
+  }
+
   function getCells(rowStart, rowEnd, columnStart, columnEnd) {
     let vss = [];
     forEachRow(rowStart, rowEnd, function (row) {
       let vs = [];
       forEachColumn(row, columnStart, columnEnd, function (cell) {
-        const inputs = cell.getElementsByTagName('INPUT');
-        if (0 < inputs.length) {
-          vs.push(inputs[0].value)
-        } else {
-          vs.push(cell.textContent);
-        }
+        vs.push(getCellContents(cell));
       });
       vss.push(vs);
     });
@@ -934,6 +937,20 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      */
     putCells: function (rowStart, rowEnd, columnStart, columnEnd, values) {
       undo.undoable(putCellsAction(rowStart, rowEnd, columnStart, columnEnd, values));
+    },
+    /**
+     * Gets the text of the cells of one column.
+     * @param {number} column index of the column to return
+     * @return {Object} array of data from that column
+     */
+    getColumn: function(column) {
+      let vs = [];
+      forEachRow(0, rowCount, function (row) {
+        forEachColumn(row, column, column + 1, function (cell) {
+          vs.push(getCellContents(cell));
+        });
+      });
+      return vs;
     },
     /**
      * Clear the undo and redo stacks.
