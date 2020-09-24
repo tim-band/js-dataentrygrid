@@ -31,6 +31,7 @@ but lacking:
     because nothing is selected.
 -   Check that it works on IE and Edge
 -   Touch screen support
+-   getDataAtCol(columnNumber)
 
 # API
 

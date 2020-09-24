@@ -90,8 +90,13 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return e;
   }
 
-  function init(headers, newRowCount) {
-    var thead = createElementArray('THEAD', 'TR', 1, function (tr) {
+  function init(headers, rows) {
+    let data = [];
+    if (typeof(rows) === 'object') {
+      data = rows;
+      rows = data.length;
+    }
+    const thead = createElementArray('THEAD', 'TR', 1, function (tr) {
       createElementArray(tr, 'TH', 1, function(th) {
         const div = createElement('DIV', {
           style: 'width:0;height:0;overflow:hidden'
@@ -106,22 +111,27 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         e.onclick = refocus;
       });
     });
-    var tbody = createElementArray('TBODY', 'TR', newRowCount, function (tr, i) {
+    const tbody = createElementArray('TBODY', 'TR', rows, function (tr, i) {
+      const rowData = data[i];
+      const row = rowData? rowData : [];
       createElementArray(tr, 'TH', 1);
       createElementArray(tr, 'TD', headers.length, function (td, j) {
-        if (i == 0 && j == 0) {
+        if (j < row.length) {
+          td.textContent = row[j];
+        }
+        if (i === 0 && j === 0) {
           td.setAttribute('class', 'anchor');
         }
       });
     });
-    var oldTHeads = table.getElementsByTagName('THEAD');
-    if (oldTHeads.length == 0) {
+    const oldTHeads = table.getElementsByTagName('THEAD');
+    if (oldTHeads.length === 0) {
       table.appendChild(thead);
     } else {
       table.replaceChild(thead, oldTHeads[0]);
     }
-    var oldTBodies = table.getElementsByTagName('TBODY');
-    if (oldTBodies.length == 0) {
+    const oldTBodies = table.getElementsByTagName('TBODY');
+    if (oldTBodies.length === 0) {
       table.appendChild(tbody);
     } else {
       table.replaceChild(tbody, oldTBodies[0]);
@@ -130,7 +140,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     selectionRow = 0;
     anchorColumn = 0;
     selectionColumn = 0;
-    rowCount = newRowCount;
+    rowCount = rows;
     columnCount = headers.length;
     undo.clearUndo();
     setCellMouseHandlers(0);
@@ -204,7 +214,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         }
       });
     });
-    const box= createElement('INPUT', { size: maxLength - 2 });
+    const box = createElement('INPUT', { size: maxLength - 2 });
     const cell = getCell(r, c);
     const text = cell.textContent;
     box.value = text;
@@ -839,7 +849,9 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     /**
      * Re-initialize the table.
      * @param {Object} headers Array of strings to become the new column headers
-     * @param {number} newRowCount Number of rows the table should now have
+     * @param {any} rows Number of rows the table should now have, or array of
+     * rows, each of which is an array of the cells in that row. Any row longer than
+     * the headers array is truncated.
      */
     init: init,
     /**

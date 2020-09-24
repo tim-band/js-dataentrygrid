@@ -81,8 +81,7 @@ describe('dataentrygrid', async function () {
 
     beforeEach(async function() {
       await doGet();
-      await init(driver, ['one', 'two', 'three'], 2);
-      await putCells(driver, 0, 2, 0, 3, [[10.1, 20.2, 30.3], [1, 2, 3]])
+      await init(driver, ['one', 'two', 'three'], [[10.1, 20.2, 30.3], [1, 2, 3]]);
     });
 
     it('can be set with a mouse click', async function() {
@@ -749,10 +748,10 @@ async function clickCell(driver, row, column) {
   await cell.click();
 }
 
-async function init(driver, headers, rowCount) {
+async function init(driver, headers, rows) {
   return await driver.executeScript(
-      `window.dataEntryGrid.init(arguments[0], ${rowCount});`,
-      headers);
+      'window.dataEntryGrid.init(arguments[0], arguments[1]);',
+      headers, rows);
 }
 
 async function setText(driver, textObject) {
