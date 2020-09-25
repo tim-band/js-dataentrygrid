@@ -101,6 +101,15 @@ describe('dataentrygrid', async function () {
       await checkSelection(driver, startRow, endRow, startColumn, endColumn);
     });
 
+    it('can be set with the API', async function () {
+      await clickCell(driver, 0, 1);
+      const startRow = 0, endRow = 1, startColumn = 2, endColumn = 1;
+      await setSelection(driver, startRow, startColumn, endRow, endColumn);
+      await checkSelection(driver, startRow, endRow, startColumn, endColumn);
+      await setSelection(driver, startRow, startColumn);
+      await checkSelection(driver, startRow, startRow, startColumn, startColumn);
+    });
+
     it('moves with the cursor keys', async function() {
       await clickCell(driver, 1, 1);
       await sendKeys(driver, Key.ARROW_UP);
@@ -298,6 +307,20 @@ describe('dataentrygrid', async function () {
       const actual = await getCells(driver);
       const expected = values.map(r => r.map(c => String(c)));
       assert.deepStrictEqual(actual, expected);
+    });
+
+    it('can be cleared', async function () {
+      const values = [[3, 4.3, 6], [1, 0.1, 2], [9, 9.4, 7]];
+      const headers = ['alpha', 'beta', 'gamma'];
+      await init(driver, headers, values);
+      await clearData(driver);
+      const actual = await getCells(driver);
+      const expected = values.map(r => r.map(c => ''));
+      assert.deepStrictEqual(actual, expected);
+      const rc = await getRowCount(driver);
+      assert.strictEqual(rc, values.length);
+      const cc = await getColumnCount(driver);
+      assert.strictEqual(cc, headers.length);
     });
 
     it('can be copied to the clipboard', async function() {
@@ -636,7 +659,61 @@ describe('dataentrygrid', async function () {
       await driver.findElement(By.css('#input tbody th')).click();
     });
   });
+
+  describe('change callback', function() {
+
+    beforeEach(async function() {
+      await doGet();
+      await driver.executeScript('window.changes=0;window.dataEntryGrid.onchange(function(){++window.changes});');
+    });
+
+    afterEach(async function() {
+      await driver.executeScript('window.dataEntryGrid.onchange(null);');
+    });
+
+    it('notices typing', async function() {
+      await clickCell(driver, 0, 0);
+      await sendKeys(driver, 54.3, Key.TAB);
+      await assertChanges(driver, 1);
+      await sendKeys(driver, 22.2, Key.ARROW_DOWN);
+      await assertChanges(driver, 2);
+    });
+
+    it('notices clearing', async function() {
+      await clearData(driver);
+      await assertChanges(driver, 1);
+    });
+
+    it('notices row insertion', async function() {
+      await rowHeaderMenuSelect(driver, 0, 'add-after');
+      await assertChanges(driver, 1);
+    });
+
+    it('notices row deletion', async function() {
+      await rowHeaderMenuSelect(driver, 0, 'delete');
+      await assertChanges(driver, 1);
+    });
+
+    it('notices undo and redo', async function() {
+      await clickCell(driver, 0, 0);
+      await sendKeys(driver, 54.3, Key.TAB);
+      const changes = await getGlobal(driver, 'changes');
+      await sendKeys(driver, Key.CONTROL, 'z');
+      await assertChanges(driver, changes + 1);
+      await sendKeys(driver, Key.CONTROL, Key.SHIFT, 'z');
+      await assertChanges(driver, changes + 2);
+    });
+  });
 });
+
+async function assertChanges(driver, expected) {
+  const changes = await getGlobal(driver, 'changes');
+  assert.strictEqual(changes, expected);
+}
+
+async function getGlobal(driver, name) {
+  return await driver.executeScript(`return window.${name};`);
+}
 
 async function assertEnabled(driver, buttonId) {
   // for some reason we need to fetch it every time,
@@ -791,6 +868,11 @@ async function getSelection(driver) {
   return await driver.executeScript('return window.dataEntryGrid.getSelection();');
 }
 
+async function setSelection(driver, anchorRow, anchorColumn, selectionRow, selectionColumn) {
+  return await driver.executeScript(`window.dataEntryGrid.setSelection(
+    ${anchorRow}, ${anchorColumn}, ${selectionRow}, ${selectionColumn});`);
+}
+
 async function getRowCount(driver) {
   return await driver.executeScript('return window.dataEntryGrid.rowCount();');
 }
@@ -814,6 +896,10 @@ async function putCells(driver, startRow, endRow, startColumn, endColumn, rows) 
   await driver.executeScript(
     `window.dataEntryGrid.putCells(${startRow}, ${endRow},
       ${startColumn}, ${endColumn}, ${JSON.stringify(rows)});`);
+}
+
+async function clearData(driver) {
+  await driver.executeScript('window.dataEntryGrid.clearData()');
 }
 
 async function getColumnHeaders(driver) {

@@ -15,6 +15,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   var selectionColumn = 0;
   var returnColumn = 0;
   var inputBox = null;
+  var onchange = null;
   var contextMenu = null;
   var hiddenTextarea = null;
   var localizedText = {
@@ -144,12 +145,16 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     columnCount = headers.length;
     undo.clearUndo();
     setCellMouseHandlers(0);
+    changed();
     refocus();
   }
 
   function removeContextMenu() {
     if (contextMenu) {
-      table.removeChild(contextMenu);
+      try {
+        table.removeChild(contextMenu);
+      } catch(e) {
+      }
       contextMenu = null;
     }
     refocus();
@@ -202,6 +207,12 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return true;
   }
 
+  function changed() {
+    if (onchange) {
+      onchange();
+    }
+  }
+
   function beginEdit() {
     const r = anchorRow;
     const c = anchorColumn;
@@ -223,7 +234,9 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     commitEdit = function () { return doCommitEdit(r, c, box, text); }
     box.onkeydown = handleInputKey;
     box.onblur = function () {
-      undo.undoable(commitEdit(r, c, box, text));
+      if (undo.undoable(commitEdit(r, c, box, text))) {
+        changed();
+      }
       refocus();
     }
     box.setSelectionRange(0, box.value.length);
@@ -344,7 +357,9 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   }
 
   function doGoToCell(r, c) {
-    undo.undoable(commitEdit());
+    if (undo.undoable(commitEdit())) {
+      changed();
+    }
     getAnchor().classList.remove('anchor');
     if (r < 0 || rowCount <= r
       || c < 0 || columnCount <= c) {
@@ -417,18 +432,21 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     deleteOption.onclick = function () {
       undo.undoable(deleteRows(firstRow, count));
       removeContextMenu();
+      changed();
     }
     contextMenu.appendChild(deleteOption);
     const addBeforeOption = addRowsBeforeOption();
     addBeforeOption.onclick = function () {
       undo.undoable(insertRows(firstRow, count));
       removeContextMenu();
+      changed();
     }
     contextMenu.appendChild(addBeforeOption);
     const addAfterOption = addRowsAfterOption();
     addAfterOption.onclick = function () {
       undo.undoable(insertRows(firstRow + count, count));
       removeContextMenu();
+      changed();
     }
     contextMenu.appendChild(addAfterOption);
     const mousePosition = getMouseCoordinates(ev);
@@ -557,13 +575,28 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   function doUndo() {
     undo.undoable(commitEdit());
     undo.undo();
+    changed();
     refocus();
   }
 
   function doRedo() {
     commitEdit();
     undo.redo();
+    changed();
     refocus();
+  }
+
+  function clearCells(startRow, endRow, startColumn, endColumn) {
+    let row = [];
+    for (let i = startColumn; i !== endColumn; ++i) {
+      row.push('');
+    }
+    let empties = [];
+    for (let j = startRow; j !== endRow; ++j) {
+      empties.push(row);
+    }
+    undo.undoable(putCellsAction(startRow, endRow, startColumn, endColumn, empties));
+    changed();
   }
 
   function clearSelection() {
@@ -571,15 +604,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     const lastRow = Math.max(anchorRow, selectionRow) + 1;
     const firstColumn = Math.min(anchorColumn, selectionColumn);
     const lastColumn = Math.max(anchorColumn, selectionColumn) + 1;
-    let row = [];
-    for (let i = firstColumn; i !== lastColumn; ++i) {
-      row.push('');
-    }
-    let empties = [];
-    for (let j = firstRow; j !== lastRow; ++j) {
-      empties.push(row);
-    }
-    undo.undoable(putCellsAction(firstRow, lastRow, firstColumn, lastColumn, empties));
+    clearCells(firstRow, lastRow, firstColumn, lastColumn);
   }
 
   function copySelection() {
@@ -643,6 +668,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       values[r] = values[r % valueRowCount];
     }
     undo.undoable(putCellsAction(firstRow, lastRow, firstColumn, lastColumn, values));
+    changed();
   }
 
   function tableKeyPressHandler(ev) {
@@ -740,34 +766,25 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       inputBox.selectionStart === inputBox.selectionEnd;
     const inputAtStart = inputNotSelected && inputBox.selectionStart === 0;
     const inputAtEnd = inputNotSelected && inputBox.selectionStart === inputBox.value.length;
+    let dest = null;
     if (ev.key === 'ArrowLeft') {
-      if (inputBox && !inputAtStart) {
-        return;
+      if ((!inputBox || inputAtStart) && 0 < anchorColumn) {
+        dest = { row: anchorRow, column: anchorColumn - 1 };
       }
-      if (0 < anchorColumn) {
-        undo.undoable(commitEdit());
-        setSelection(anchorRow, anchorColumn - 1, anchorRow, anchorColumn - 1);
-        returnColumn = anchorColumn;
-        beginEdit();
+    } else if (ev.key === 'ArrowRight') {
+      if ((!inputBox || inputAtEnd) && anchorColumn + 1 < columnCount) {
+        dest = { row: anchorRow, column: anchorColumn + 1 };
       }
-      return false;
+    } else {
+      dest = move(ev, anchorRow, anchorColumn);
     }
-    if (ev.key === 'ArrowRight') {
-      if (inputBox && !inputAtEnd) {
-        return;
-      }
-      if (anchorColumn + 1 < columnCount) {
-        undo.undoable(commitEdit());
-        setSelection(anchorRow, anchorColumn + 1, anchorRow, anchorColumn + 1);
-        returnColumn = anchorColumn;
-        beginEdit();
-      }
-      return false;
-    }
-    const dest = move(ev, anchorRow, anchorColumn);
     if (dest) {
-      undo.undoable(commitEdit());
+      const change = undo.undoable(commitEdit());
       setSelection(dest.row, dest.column, dest.row, dest.column);
+      returnColumn = anchorColumn;
+      if (change) {
+        changed();
+      }
       beginEdit();
       return false;
     }
@@ -831,6 +848,14 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       setSelection(anchorRow, anchorColumn, dest.row, dest.column);
       return false;
     }
+  }
+
+  function clampRow(r) {
+    return r < 0 ? 0 : rowCount <= r ? rowCount - 1 : r;
+  }
+
+  function clampColumn(c) {
+    return c < 0 ? 0 : columnCount <= c ? columnCount - 1 : c;
   }
 
   table.onkeydown = tableKeyDownHandler;
@@ -902,6 +927,20 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       };
     },
     /**
+     * Sets the position and size of the selection.
+     * @param {number} anchorRow The row the anchor is in
+     * @param {number} anchorColumn The column the anchor is in
+     * @param {number} [selectionRow=anchorRow] The other end of the
+     * selected rows
+     * @param {number} [selectionColumn=anchorColumn] The other end
+     * of the selected columns
+     */
+    setSelection: function (anchorRow, anchorColumn, selectionRow, selectionColumn) {
+      setSelection(clampRow(anchorRow), clampColumn(anchorColumn),
+        clampRow(withDefault(selectionRow, anchorRow)),
+        clampColumn(withDefault(selectionColumn, anchorColumn)));
+    },
+    /**
      * Returns the number of rows.
      * @returns {number} of rows in the table
      */
@@ -943,6 +982,14 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      */
     putCells: function (rowStart, rowEnd, columnStart, columnEnd, values) {
       undo.undoable(putCellsAction(rowStart, rowEnd, columnStart, columnEnd, values));
+      changed();
+    },
+    /**
+     * Clears all the data, leaving the headers and number of rows
+     * untouched. This clearing goes on the undo stack.
+     */
+    clearData: function () {
+      clearCells(0, rowCount, 0, columnCount);
     },
     /**
      * Gets the text of the cells of one column.
@@ -969,6 +1016,17 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     /**
      * Redoes the last undone action.
      */
-    redo: () => doRedo()
+    redo: () => doRedo(),
+    /**
+     * Callback with no parameters and no return
+     * @callback nullary
+     */
+    /**
+     * Sets a callback for when the content changes (removing
+     * any previous callback). Set to null to disable.
+     * @param {nullary} callback Function to call whenever the
+     * content of the table changes.
+     */
+    onchange: (callback) => { onchange = callback; }
   };
 };

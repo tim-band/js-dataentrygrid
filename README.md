@@ -47,20 +47,26 @@ but lacking:
 -   [setButtons](#setbuttons)
     -   [Parameters](#parameters-3)
 -   [getSelection](#getselection)
+-   [setSelection](#setselection)
+    -   [Parameters](#parameters-4)
 -   [rowCount](#rowcount)
 -   [columnCount](#columncount)
 -   [getColumnHeaders](#getcolumnheaders)
 -   [goToCell](#gotocell)
-    -   [Parameters](#parameters-4)
--   [getCells](#getcells)
     -   [Parameters](#parameters-5)
--   [putCells](#putcells)
+-   [getCells](#getcells)
     -   [Parameters](#parameters-6)
--   [getColumn](#getcolumn)
+-   [putCells](#putcells)
     -   [Parameters](#parameters-7)
+-   [clearData](#cleardata)
+-   [getColumn](#getcolumn)
+    -   [Parameters](#parameters-8)
 -   [clearUndo](#clearundo)
 -   [undo](#undo)
 -   [redo](#redo)
+-   [nullary](#nullary)
+-   [onchange](#onchange)
+    -   [Parameters](#parameters-9)
 
 ## createDataEntryGrid
 
@@ -111,6 +117,19 @@ Gets the position and size of the selection.
 Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** the position of the selection given by the
 following keys: `anchorRow`, `anchorColumn`, `selectionRow`,
 `selectionColumn`.
+
+## setSelection
+
+Sets the position and size of the selection.
+
+### Parameters
+
+-   `anchorRow` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The row the anchor is in
+-   `anchorColumn` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The column the anchor is in
+-   `selectionRow` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The other end of the
+    selected rows (optional, default `anchorRow`)
+-   `selectionColumn` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The other end
+    of the selected columns (optional, default `anchorColumn`)
 
 ## rowCount
 
@@ -164,6 +183,11 @@ Gets the text of the cells requested.
 -   `columnEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** one past the last column
 -   `values`  
 
+## clearData
+
+Clears all the data, leaving the headers and number of rows
+untouched. This clearing goes on the undo stack.
+
 ## getColumn
 
 Gets the text of the cells of one column.
@@ -185,3 +209,19 @@ Undoes the last action done or redone.
 ## redo
 
 Redoes the last undone action.
+
+## nullary
+
+Callback with no parameters and no return
+
+Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)
+
+## onchange
+
+Sets a callback for when the content changes (removing
+any previous callback). Set to null to disable.
+
+### Parameters
+
+-   `callback` **[nullary](#nullary)** Function to call whenever the
+    content of the table changes.
