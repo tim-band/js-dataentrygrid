@@ -51,10 +51,13 @@ but lacking:
 -   [columnCount](#columncount)
 -   [getColumnHeaders](#getcolumnheaders)
 -   [goToCell](#gotocell)
--   [getCells](#getcells)
     -   [Parameters](#parameters-4)
--   [putCells](#putcells)
+-   [getCells](#getcells)
     -   [Parameters](#parameters-5)
+-   [putCells](#putcells)
+    -   [Parameters](#parameters-6)
+-   [getColumn](#getcolumn)
+    -   [Parameters](#parameters-7)
 -   [clearUndo](#clearundo)
 -   [undo](#undo)
 -   [redo](#redo)
@@ -66,7 +69,7 @@ Initialize an HTML table to be a data entry grid.
 ### Parameters
 
 -   `containerId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** id of the `table` element you want to make interactive
--   `headers` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** array of strings to become the new column headers
+-   `headers` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** array of strings to become the new column headers
 -   `newRowCount` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** number of rows the table should now have
 
 Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** The table object.
@@ -77,8 +80,7 @@ Re-initialize the table.
 
 ### Parameters
 
--   `headers` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Array of strings to become the new column headers
--   `newRowCount` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Number of rows the table should now have
+-   `headers` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** Array of strings to become the new column headers
 
 ## setText
 
@@ -126,11 +128,16 @@ Returns **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/G
 
 Returns the column headers.
 
-Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** array of strings.
+Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** array of strings.
 
 ## goToCell
 
 Moves the anchor (and selection to the same place)
+
+### Parameters
+
+-   `r` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** row to go to
+-   `c` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** column to go to
 
 ## getCells
 
@@ -138,13 +145,12 @@ Gets the text of the cells requested.
 
 ### Parameters
 
--   `rowStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** first row (zero-based)
--   `rowEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** one past the last row
--   `columnStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** first column
--   `columnEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** one past the last column
-
-Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Array of rows, each of which is an array
-of strings, the contents of each cell.
+-   `rowStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** first row (zero-based) (optional, default `0`)
+-   `rowEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** one past the last row, defaults to
+    (one past) the last row
+-   `columnStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** first column (optional, default `0`)
+-   `columnEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** one past the last column, defaults
+    to (one past) the last column
 
 ## putCells
 
@@ -156,8 +162,17 @@ Gets the text of the cells requested.
 -   `rowEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** one past the last row
 -   `columnStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** first column
 -   `columnEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** one past the last column
--   `values` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Array of rows, each of which is an array
-    of strings, the contents of each cell.
+-   `values`  
+
+## getColumn
+
+Gets the text of the cells of one column.
+
+### Parameters
+
+-   `column` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** index of the column to return
+
+Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** data from that column
 
 ## clearUndo
 

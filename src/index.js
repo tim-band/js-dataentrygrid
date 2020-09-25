@@ -2,7 +2,7 @@
  * Initialize an HTML table to be a data entry grid.
  * 
  * @param {string}  containerId id of the `table` element you want to make interactive
- * @param {Object} headers array of strings to become the new column headers
+ * @param {string[]} headers array of strings to become the new column headers
  * @param {number} newRowCount number of rows the table should now have
  * @returns {Object} The table object.
  */
@@ -518,11 +518,17 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return cell.textContent;
   }
 
+  function withDefault(a, def) {
+    return typeof (a) === 'undefined' ? def : a;
+  }
+
   function getCells(rowStart, rowEnd, columnStart, columnEnd) {
     let vss = [];
-    forEachRow(rowStart, rowEnd, function (row) {
+    forEachRow(withDefault(rowStart, 0),
+      withDefault(rowEnd, rowCount), function (row) {
       let vs = [];
-      forEachColumn(row, columnStart, columnEnd, function (cell) {
+          forEachColumn(row, withDefault(columnStart, 0),
+            withDefault(columnEnd, columnCount), function (cell) {
         vs.push(getCellContents(cell));
       });
       vss.push(vs);
@@ -851,8 +857,8 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   return {
     /**
      * Re-initialize the table.
-     * @param {Object} headers Array of strings to become the new column headers
-     * @param {any} rows Number of rows the table should now have, or array of
+     * @param {string[]} headers Array of strings to become the new column headers
+     * @param {number|string[][]} rows Number of rows the table should now have, or array of
      * rows, each of which is an array of the cells in that row. Any row longer than
      * the headers array is truncated.
      */
@@ -907,23 +913,24 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     columnCount: function () { return columnCount },
     /**
      * Returns the column headers.
-     * @returns {Object} array of strings.
+     * @returns {string[]} array of strings.
      */
     getColumnHeaders: getColumnHeaders,
     /**
      * Moves the anchor (and selection to the same place)
-     * @params {number} row to go to
-     * @params {number} column to go to
+     * @param {number} r row to go to
+     * @param {number} c column to go to
      */
     goToCell: goToCell,
     /**
      * Gets the text of the cells requested.
-     * @param {number} rowStart first row (zero-based)
-     * @param {number} rowEnd one past the last row
-     * @param {number} columnStart first column
-     * @param {number} columnEnd one past the last column
-     * @return {Object} Array of rows, each of which is an array
-     * of strings, the contents of each cell.
+     * @param {number} [rowStart=0] first row (zero-based)
+     * @param {number} [rowEnd] one past the last row, defaults to
+     * (one past) the last row
+     * @param {number} [columnStart=0] first column
+     * @param {number} [columnEnd] one past the last column, defaults
+     * to (one past) the last column
+     * @returns {string[][]} The cell contents
      */
     getCells: getCells,
     /**
@@ -932,8 +939,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @param {number} rowEnd one past the last row
      * @param {number} columnStart first column
      * @param {number} columnEnd one past the last column
-     * @param {Object} values Array of rows, each of which is an array
-     * of strings, the contents of each cell.
+     * @param {string[][]} values an array of arrays of new cell values.
      */
     putCells: function (rowStart, rowEnd, columnStart, columnEnd, values) {
       undo.undoable(putCellsAction(rowStart, rowEnd, columnStart, columnEnd, values));
@@ -941,7 +947,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     /**
      * Gets the text of the cells of one column.
      * @param {number} column index of the column to return
-     * @return {Object} array of data from that column
+     * @returns {string[]} data from that column
      */
     getColumn: function(column) {
       let vs = [];

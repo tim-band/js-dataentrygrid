@@ -292,6 +292,14 @@ describe('dataentrygrid', async function () {
       assert.deepStrictEqual(column, expected);
     });
 
+    it('can be got as a whole', async function () {
+      const values = [[3, 4.3, 6], [1, 0.1, 2], [9, 9.4, 7]];
+      await init(driver, ['alpha', 'beta', 'gamma'], values);
+      const actual = await getCells(driver);
+      const expected = values.map(r => r.map(c => String(c)));
+      assert.deepStrictEqual(actual, expected);
+    });
+
     it('can be copied to the clipboard', async function() {
       const rows = [['23.4', '43.1'], ['0.123', '55']];
       await putCells(driver, 0, 2, 0, 2, rows);
