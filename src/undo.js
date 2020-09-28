@@ -5,18 +5,21 @@ function undoSystem() {
   let undoButton = null;
   let redoButton = null;
 
-  // undoable(myAction()) pushes the inverse action onto the undo stack
+  // undoable(myAction()) pushes the inverse action onto the undo stack.
+  // returns true if the action wasn't null
   function undoable(action) {
-    if (action !== null) {
-      if (redoButton && redoStack.length !== 0) {
-        redoButton.setAttribute('disabled', '');
-      }
-      if (undoButton && undoStack.length === 0) {
-        undoButton.removeAttribute('disabled');
-      }
-      undoStack.push(action);
-      redoStack = [];
+    if (action === null) {
+      return false;
     }
+    if (redoButton && redoStack.length !== 0) {
+      redoButton.setAttribute('disabled', '');
+    }
+    if (undoButton && undoStack.length === 0) {
+      undoButton.removeAttribute('disabled');
+    }
+    undoStack.push(action);
+    redoStack = [];
+    return true;
   }
 
   function redo() {

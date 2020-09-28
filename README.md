@@ -47,17 +47,20 @@ but lacking:
 -   [setButtons](#setbuttons)
     -   [Parameters](#parameters-3)
 -   [getSelection](#getselection)
+-   [setSelection](#setselection)
+    -   [Parameters](#parameters-4)
 -   [rowCount](#rowcount)
 -   [columnCount](#columncount)
 -   [getColumnHeaders](#getcolumnheaders)
 -   [goToCell](#gotocell)
-    -   [Parameters](#parameters-4)
--   [getCells](#getcells)
     -   [Parameters](#parameters-5)
--   [putCells](#putcells)
+-   [getCells](#getcells)
     -   [Parameters](#parameters-6)
--   [getColumn](#getcolumn)
+-   [putCells](#putcells)
     -   [Parameters](#parameters-7)
+-   [clearData](#cleardata)
+-   [getColumn](#getcolumn)
+    -   [Parameters](#parameters-8)
 -   [clearUndo](#clearundo)
 -   [undo](#undo)
 -   [redo](#redo)
@@ -112,6 +115,19 @@ Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/G
 following keys: `anchorRow`, `anchorColumn`, `selectionRow`,
 `selectionColumn`.
 
+## setSelection
+
+Sets the position and size of the selection.
+
+### Parameters
+
+-   `anchorRow` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The row the anchor is in
+-   `anchorColumn` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The column the anchor is in
+-   `selectionRow` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The other end of the
+    selected rows (optional, default `anchorRow`)
+-   `selectionColumn` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The other end
+    of the selected columns (optional, default `anchorColumn`)
+
 ## rowCount
 
 Returns the number of rows.
@@ -163,6 +179,11 @@ Gets the text of the cells requested.
 -   `columnStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** first column
 -   `columnEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** one past the last column
 -   `values`  
+
+## clearData
+
+Clears all the data, leaving the headers and number of rows
+untouched. This clearing goes on the undo stack.
 
 ## getColumn
 
