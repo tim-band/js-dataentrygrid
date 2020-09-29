@@ -257,6 +257,28 @@ describe('dataentrygrid', async function () {
       await sendKeys(driver, c3, Key.RETURN);
       await checkSelection(driver, 2, 2, 0, 0, 'return (down to start of line)');
       await assertCellContents(driver, 1, 1, c3);
+      // typing including arrow keys, backspace, and delete
+      await clickCell(driver, 0, 0);
+      await sendKeys(driver,
+        '1234',
+        Key.ARROW_LEFT,
+        Key.BACK_SPACE,
+        '5678',
+        Key.ARROW_LEFT, Key.ARROW_LEFT,
+        Key.DELETE,
+        '9',
+        Key.ARROW_RIGHT,
+        '0',
+        Key.TAB);
+      await assertCellContents(driver, 0, 0, '12569804');
+      // ...and we can change the start
+      await clickCell(driver, 0, 0);
+      await sendKeys(driver, Key.ARROW_LEFT, '4', Key.RETURN);
+      await assertCellContents(driver, 0, 0, '412569804');
+      // ...and the end
+      await clickCell(driver, 0, 0);
+      await sendKeys(driver, Key.ARROW_RIGHT, '2', Key.TAB);
+      await assertCellContents(driver, 0, 0, '4125698042');
     });
 
     it('is still there when typing is initiated', async function() {

@@ -727,7 +727,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         return preventDefault(ev);
       }
     }
-    if (ev.key === 'Delete' || ev.key === 'Backspace') {
+    if (!inputBox && (ev.key === 'Delete' || ev.key === 'Backspace')) {
       clearSelection();
       return preventDefault(ev);
     }
