@@ -1,3 +1,7 @@
+<link rel="stylesheet" href="https://github.com/tim-band/js-dataentrygrid/releases/download/v1.1/dataentrygrid.css">
+<script src="https://github.com/tim-band/js-dataentrygrid/releases/download/v1.1/dataentrygrid.min.js">
+</script>
+
 ## DataEntryGrid
 
 **DataEntryGrid** is a lightweight Excel-like interface to allow users to enter
@@ -17,3 +21,12 @@ navigate using arrow keys, Home/End/Page Up/Page Down, Return and Tab in ways
 that more or less correspond with Excel. They can use an unlimited Undo stack.
 
 The API is limited but should provide what is needed for most cases.
+
+## Try it yourself!
+
+<table id='input' class='data-entry-grid'>
+</table>
+
+<script>
+  createDataEntryGrid('input', ['alpha', 'beta', 'gamma', 'delta'], 10);
+</script>
