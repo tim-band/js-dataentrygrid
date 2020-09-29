@@ -1,37 +1,19 @@
-## Welcome to GitHub Pages
+## DataEntryGrid
 
-You can use the [editor on GitHub](https://github.com/tim-band/js-dataentrygrid/edit/master/docs/index.md) to maintain and preview the content for your website in Markdown files.
+**DataEntryGrid** is a lightweight Excel-like interface to allow users to enter
+data on your web page.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+It was inspired by the amazing [Handsontable](https://handsontable.com/), and
+the fact that its minified source costs more than a gigabyte.
 
-### Markdown
+Many users do not need all the functionality of Handsontable. In fact, it might
+make the user experience worse as users might be able to use features that your
+backend does not understand.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+The aim of DataEntryGrid, therefore, is to provide only features that help
+users to enter data. They can cut, copy and paste both within DataEntryGrid
+and between it and programs such as Microsoft Excel. They can type data and
+navigate using arrow keys, Home/End/Page Up/Page Down, Return and Tab in ways
+that more or less correspond with Excel. They can use an unlimited Undo stack.
 
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/tim-band/js-dataentrygrid/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+The API is limited but should provide what is needed for most cases.
