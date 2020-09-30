@@ -1,4 +1,4 @@
-<script src="https://github.com/tim-band/js-dataentrygrid/releases/download/v1.1.1/dataentrygrid.min.js">
+<script src="https://github.com/tim-band/js-dataentrygrid/releases/download/v1.1.2/dataentrygrid.min.js">
 </script>
 
 ## DataEntryGrid

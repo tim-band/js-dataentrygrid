@@ -435,7 +435,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     }
     cMenu.appendChild(addAfterOption);
     const mousePosition = getMouseCoordinates(ev);
-    cMenu.style.position = 'fixed';
+    cMenu.style.position = 'absolute';
     cMenu.style.left = mousePosition.x + 'px';
     cMenu.style.top = mousePosition.y + 'px';
     cMenu.tabIndex = -1;
