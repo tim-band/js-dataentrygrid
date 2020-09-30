@@ -1,4 +1,7 @@
-@import "";
+---
+---
+
+@import "{{ site.theme }}";
 
 table.data-entry-grid {
   border: 1px solid black;
