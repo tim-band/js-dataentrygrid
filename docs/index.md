@@ -1,4 +1,4 @@
-<script src="https://github.com/tim-band/js-dataentrygrid/releases/download/v1.1/dataentrygrid.min.js">
+<script src="https://github.com/tim-band/js-dataentrygrid/releases/download/v1.2/dataentrygrid.min.js">
 </script>
 
 ## DataEntryGrid
@@ -23,9 +23,12 @@ The API is limited but should provide what is needed for most cases.
 
 ## Try it yourself!
 
+`window.deg` is set to the DataEntryGrid object, so open the console and use the
+API as documented in the [README](../README.md).
+
 <table id='input' class='data-entry-grid'>
 </table>
 
 <script>
-  createDataEntryGrid('input', ['alpha', 'beta', 'gamma', 'delta'], 10);
+  window.deg = createDataEntryGrid('input', ['alpha', 'beta', 'gamma', 'delta'], 10);
 </script>

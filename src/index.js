@@ -147,14 +147,14 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     refocus();
   }
 
-  function removeContextMenu() {
-    if (contextMenu) {
+  function removeContextMenu(cMenu) {
+    if (cMenu.parentNode) {
       try {
-        table.removeChild(contextMenu);
+        cMenu.parentNode.removeChild(cMenu);
       } catch(e) {
       }
-      contextMenu = null;
     }
+    contextMenu = null;
     refocus();
   }
 
@@ -415,35 +415,39 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       }
     }
     const id = table.getAttribute('id').concat('-row-menu');
-    contextMenu = createElement('SELECT', { id: id, size: 3 });
+    const cMenu = createElement('SELECT', { id: id, size: 3 });
     const deleteOption = deleteRowsOption();
     deleteOption.onclick = function () {
       undo.undoable(deleteRows(firstRow, count));
-      removeContextMenu();
+      removeContextMenu(cMenu);
     }
-    contextMenu.appendChild(deleteOption);
+    cMenu.appendChild(deleteOption);
     const addBeforeOption = addRowsBeforeOption();
     addBeforeOption.onclick = function () {
       undo.undoable(insertRows(firstRow, count));
-      removeContextMenu();
+      removeContextMenu(cMenu);
     }
-    contextMenu.appendChild(addBeforeOption);
+    cMenu.appendChild(addBeforeOption);
     const addAfterOption = addRowsAfterOption();
     addAfterOption.onclick = function () {
       undo.undoable(insertRows(firstRow + count, count));
-      removeContextMenu();
+      removeContextMenu(cMenu);
     }
-    contextMenu.appendChild(addAfterOption);
+    cMenu.appendChild(addAfterOption);
     const mousePosition = getMouseCoordinates(ev);
-    contextMenu.style.position = 'fixed';
-    contextMenu.style.left = mousePosition.x + 'px';
-    contextMenu.style.top = mousePosition.y + 'px';
-    contextMenu.tabIndex = -1;
-    contextMenu.zIndex = 10;
-    contextMenu.onblur = removeContextMenu;
-    contextMenu.contentEditable = false;
-    table.appendChild(contextMenu);
-    return contextMenu;
+    cMenu.style.position = 'fixed';
+    cMenu.style.left = mousePosition.x + 'px';
+    cMenu.style.top = mousePosition.y + 'px';
+    cMenu.tabIndex = -1;
+    cMenu.zIndex = 10;
+    cMenu.onblur = function() { removeContextMenu(cMenu); };
+    cMenu.contentEditable = false;
+    if (contextMenu) {
+      removeContextMenu(contextMenu);
+    }
+    contextMenu = cMenu;
+    table.appendChild(cMenu);
+    return cMenu;
   }
 
   function forEachRow(rowStart, rowEnd, callback) {
