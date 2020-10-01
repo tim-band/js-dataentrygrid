@@ -736,6 +736,8 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       return preventDefault(ev);
     }
     if (moveSelection(ev) === false) {
+      undo.undoable(commitEdit());
+      refocus();
       return preventDefault(ev);
     }
     if (moveAnchor(ev) === false) {

@@ -345,6 +345,27 @@ describe('dataentrygrid', async function () {
       assert.strictEqual(cc, headers.length);
     });
 
+    it('can have selection cleared', async function() {
+      for (const key of [Key.DELETE, Key.BACK_SPACE]) {
+        const values = [[3, 4.3, 6], [1, 0.1, 2], [9, 9.4, 7]];
+        const headers = ['alpha', 'beta', 'gamma'];
+        await init(driver, headers, values);
+        await clickCell(driver, 0, 0);
+        await sendKeys(driver, Key.SHIFT, Key.ARROW_RIGHT, Key.ARROW_DOWN, key);
+        for (const r of [0,1]) {
+          for (const c of [0,1]) {
+            await assertCellContents(driver, r, c, '');
+          }
+        }
+        for (const r of [0,1]) {
+          await assertCellContents(driver, r, 2, values[r][2]);
+        };
+        for (const c of [0,2]) {
+          await assertCellContents(driver, 2, c, values[2][c]);
+        }
+        }
+    });
+
     it('can be copied to the clipboard', async function() {
       const rows = [['23.4', '43.1'], ['0.123', '55']];
       await putCells(driver, 0, 2, 0, 2, rows);
