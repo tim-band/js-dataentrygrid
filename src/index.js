@@ -703,7 +703,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       } catch (err) {
         // catch and discard the error because otherwise
         // the data will get pasted into the table!
-        console.log(err);
+        console.warn(err);
       }
     }
     refocus(); // seems necessary on Firefox
@@ -775,6 +775,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     }
     if (dest) {
       const change = undo.undoable(commitEdit());
+      scrollToCell(dest.row, dest.column, anchorRow, anchorColumn);
       setSelection(dest.row, dest.column, dest.row, dest.column);
       returnColumn = anchorColumn;
       beginEdit();
@@ -828,14 +829,11 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   function rowsVisibleCount() {
     let frameHeight = Math.max(1, window.innerHeight);
     const rowPixels = Math.max(getAnchor().offsetHeight, 1);
-    console.log('rvc', frameHeight, rowPixels);
     forEachScrollableAncestor(table, noop,
       function(el, rect) {
-        console.log(rect.bottom - rect.top);
         frameHeight = Math.min(frameHeight, rect.bottom - rect.top);
       }
     );
-    console.log(frameHeight, rowPixels, Math.floor(frameHeight / rowPixels - 1));
     return Math.max(Math.floor(frameHeight  / rowPixels - 1), 2);
   }
 
@@ -918,6 +916,19 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     );
   }
 
+  function scrollToCell(toRow, toColumn, fromRow, fromColumn) {
+    const cell = getCell(toRow, toColumn);
+    const br0 = toRow + compare(toRow, fromRow);
+    const br = clampRow(br0);
+    const bc0 = toColumn === 0? -1
+      : toColumn + compare(toColumn, fromColumn);
+    const bc = clampColumn(bc0);
+    const cell2 = br0 === -1? getColumnHeaderRow()[bc0 + 1]
+      : (bc0 === -1? getRowHeader(br) : getCell(br, bc));
+    scrollIntoView(cell2);
+    scrollIntoView(cell);
+}
+
   function moveSelection(ev) {
     if (!ev.shiftKey || ev.altKey || ev.metaKey) {
       return;
@@ -925,16 +936,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     const dest = move(ev, selectionRow, selectionColumn);
     if (dest) {
       setSelection(anchorRow, anchorColumn, dest.row, dest.column);
-      const cell = getCell(selectionRow, selectionColumn);
-      const br0 = selectionRow + compare(selectionRow, anchorRow);
-      const br = clampRow(br0);
-      const bc0 = selectionColumn === 0? -1
-        : selectionColumn + compare(selectionColumn, anchorColumn);
-      const bc = clampColumn(bc0);
-      const cell2 = br0 === -1? getColumnHeaderRow()[bc0 + 1]
-        : (bc0 === -1? getRowHeader(br) : getCell(br, bc));
-      scrollIntoView(cell2);
-      scrollIntoView(cell);
+      scrollToCell(dest.row, dest.column, anchorRow, anchorColumn);
       return false;
     }
   }
