@@ -1,9 +1,30 @@
 <html>
 <head>
-<title>Framed grid test</title>
+<title>scrollable grid test</title>
 <meta charset='UTF-8'/>
 </head>
-<body>
-  <iframe id="deg-frame" width="200" height="200" src="./dataentrygrid.html"></iframe>
-</body>
-</html>
+  <link rel="stylesheet" href="dataentrygrid.css">
+  <script src="../dist/dataentrygrid.min.js">
+  </script>
+  <script>
+      function begin() {
+          window.dataEntryGrid = createDataEntryGrid('input', ['one', 'two', 'three'], 2);
+          window.dataEntryGrid.setButtons(
+              document.getElementById('undo'),
+              document.getElementById('redo')
+          );
+      }
+  </script>
+  </head>
+  <body onload="begin()">
+      <div>
+          <button id='undo'>Undo</button>
+          <button id='redo'>Redo</button>
+      </div>
+      <div id='deg-frame' style='width:200;height:200;overflow:scroll;'>
+        <table id='input' class='data-entry-grid' tabindex='0'>
+        </table>
+      </div>
+  </body>
+  </html>
+  

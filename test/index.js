@@ -139,11 +139,11 @@ describe('dataentrygrid', async function () {
     it ('moves with the page up/down keys', async function() {
       await driver.get("http://localhost:3004/test/deg-iframe.html");
       const frame = await driver.findElement(By.id('deg-frame'));
-      const rect = await frame.getRect();
-      await driver.switchTo().frame(frame);
+      const rect = await getBoundingRect(driver, frame);
+      const height = rect.bottom - rect.top;
       await init(driver, ['one', 'two'], 50);
       const cell = await getCell(driver, 0, 0).then(c => c.getRect());
-      const visibleRows = Math.ceil(rect.height / cell.height);
+      const visibleRows = Math.ceil(height / cell.height) - 1;
       await clickCell(driver, 0, 0);
       await sendKeys(driver, Key.PAGE_DOWN);
       let sel = await getSelection(driver);
@@ -199,11 +199,11 @@ describe('dataentrygrid', async function () {
     it ('gets extended with the page up/down keys', async function() {
       await driver.get("http://localhost:3004/test/deg-iframe.html");
       const frame = await driver.findElement(By.id('deg-frame'));
-      const rect = await frame.getRect();
-      await driver.switchTo().frame(frame);
+      const rect = await getBoundingRect(driver, frame);
+      const height = rect.bottom - rect.top;
       await init(driver, ['one', 'two'], 50);
       const cell = await getCell(driver, 0, 0).then(c => c.getRect());
-      const visibleRows = Math.ceil(rect.height / cell.height);
+      const visibleRows = Math.ceil(height / cell.height) - 1;
       await clickCell(driver, 0, 0);
       await sendKeys(driver, Key.PAGE_DOWN);
       let sel = await getSelection(driver);
@@ -702,15 +702,91 @@ describe('dataentrygrid', async function () {
       await driver.findElement(By.css('#input tbody th')).click();
     });
   });
+
+  describe('scrolling', function () {
+    let standardRows;
+    let frame;
+    let frameRect;
+
+    before(function () {
+      standardRows = [];
+      for (let i = 0; i < 200; i += 5) {
+        const row = [];
+        for (let j = 1; j != 6; ++j) {
+          row.push(i + j);
+        }
+        standardRows.push(row);
+      }
+    });
+
+    beforeEach(async function() {
+      await driver.get("http://localhost:3004/test/deg-iframe.html");
+      frame = await driver.findElement(By.id('deg-frame'));
+      frameRect = await getBoundingRect(driver, frame);
+      await init(driver, ['one', 'two', 'three', 'four', 'five', ''], standardRows);
+    });
+
+    it('is not affected by refocus', async function() {
+      const scrollX = 10;
+      const scrollY = 200;
+      const frame = await driver.findElement(By.id('deg-frame'));
+      await setScroll(driver, frame, scrollX, scrollY);
+      await clickCell(driver, 10, 1);
+      await clickCell(driver, 11, 2);
+      await assertScrollIsRoughly(driver, frame, scrollX, scrollY);
+    });
+
+    it('scrolls to follow selection', async function() {
+      await setScroll(driver, frame, 10, 200);
+      const startRow = 10;
+      const startColumn = 1;
+      await clickCell(driver, startRow, startColumn);
+      const upCount = 5;
+      const rightCount = 3;
+      await sendKeys.apply(this, [driver, Key.SHIFT].concat(
+        new Array(upCount).fill(Key.ARROW_UP), new Array(rightCount).fill(Key.ARROW_RIGHT)));
+      // see if we have scrolled to one beyond where we selected to
+      const cell = await getCell(driver, startRow - upCount - 1, startColumn + rightCount + 1);
+      const cr = await getBoundingRect(driver, cell);
+      assert(frameRect.right - 5 < cr.right && frameRect.right + 5,
+        `right edge is ${cr.right}, not roughly ${frameRect.right}`);
+      assert(frameRect.top - 5 < cr.top && frameRect.top + 5,
+        `top edge is ${cr.top}, not roughly ${frameRect.top}`);
+      });
+  });
 });
 
-async function assertChanges(driver, expected) {
-  const changes = await getGlobal(driver, 'changes');
-  assert.strictEqual(changes, expected);
+async function setScroll(driver, element, x, y) {
+  await driver.executeScript(`arguments[0].scrollTo(${x}, ${y});`, element);
 }
 
-async function getGlobal(driver, name) {
-  return await driver.executeScript(`return window.${name};`);
+async function assertScrollIsRoughly(driver, element, x, y, d=5) {
+  const actualX = await getScrollX(driver, element);
+  const actualY = await getScrollY(driver, element);
+  assert(x-d < actualX && actualX < x+d && y-d < actualY && actualY < y+d,
+    `actual scroll (${actualX},${actualY}) does not match expected (${x},${y})`);
+}
+
+async function getScrollX(driver, element) {
+  return await driver.executeScript('return arguments[0].scrollLeft;', element);
+}
+
+async function getScrollY(driver, element) {
+  return await driver.executeScript('return arguments[0].scrollTop;', element);
+}
+
+async function getBoundingRect(driver, element) {
+  return await driver.executeScript(
+    `var e = arguments[0];
+    var r = e.getBoundingClientRect();
+    var top = r.top + e.clientTop;
+    var left = r.left + e.clientLeft;
+    return {
+      top: top,
+      left: left,
+      bottom: top + e.clientHeight,
+      right: left + e.clientWidth,
+    };`, element);
 }
 
 async function assertEnabled(driver, buttonId) {

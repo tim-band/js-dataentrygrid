@@ -35,18 +35,26 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return getRow(r).getElementsByTagName('TD')[c];
   }
 
+  function getRowHeader(r) {
+    return getRow(r).getElementsByTagName('TH')[0];
+  }
+
   function getAnchor() {
     return getCell(anchorRow, anchorColumn);
   }
 
-  function getColumnHeaders() {
-    var thead = table.getElementsByTagName('THEAD');
+  function getColumnHeaderRow() {
+    const thead = table.getElementsByTagName('THEAD');
     if (thead.length === 0) {
       return [];
     }
-    var ths = thead[0].getElementsByTagName('TH');
-    var headers = [];
-    for (var i = 1; i !== ths.length; ++i) {
+    return thead[0].getElementsByTagName('TH');
+  }
+
+  function getColumnHeaders() {
+    const ths = getColumnHeaderRow();
+    const headers = [];
+    for (let i = 1; i !== ths.length; ++i) {
       headers.push(ths[i].textContent);
     }
     return headers;
@@ -99,7 +107,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     const thead = createElementArray('THEAD', 'TR', 1, function (tr) {
       createElementArray(tr, 'TH', 1, function(th) {
         const div = createElement('DIV', {
-          style: 'width:0;height:0;overflow:hidden'
+          style: 'width:0;height:0;overflow:hidden;position:fixed'
         });
         hiddenTextarea = createElement('TEXTAREA', { tabindex: '-1' });
         div.appendChild(hiddenTextarea);
@@ -818,9 +826,96 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   }
 
   function rowsVisibleCount() {
-    const pixelsToScrollPast = Math.max(0, window.innerHeight - 1);
+    let frameHeight = Math.max(1, window.innerHeight);
     const rowPixels = Math.max(getAnchor().offsetHeight, 1);
-    return Math.floor(pixelsToScrollPast  / rowPixels + 1);
+    console.log('rvc', frameHeight, rowPixels);
+    forEachScrollableAncestor(table, noop,
+      function(el, rect) {
+        console.log(rect.bottom - rect.top);
+        frameHeight = Math.min(frameHeight, rect.bottom - rect.top);
+      }
+    );
+    console.log(frameHeight, rowPixels, Math.floor(frameHeight / rowPixels - 1));
+    return Math.max(Math.floor(frameHeight  / rowPixels - 1), 2);
+  }
+
+  function compare(value, against) {
+    return value === against? 0 : value < against? -1 : 1;
+  }
+
+  // direction should be 'x' or 'y'
+  function isScrollable(element, direction) {
+    const style = window.getComputedStyle(element);
+    let overflow = style.getPropertyValue('overflow-'.concat(direction));
+    if (!overflow) {
+      overflow = style.getPropertyValue('overflow');
+    }
+    return overflow === 'auto' || overflow === 'scroll';
+  }
+
+  function getBoundingRect(element) {
+    const r = element.getBoundingClientRect();
+    const left = r.left + element.clientLeft;
+    const top = r.top + element.clientTop;
+    return {
+      left: left,
+      right: left + element.clientWidth,
+      top: top,
+      bottom: top + element.clientHeight
+    };
+  }
+
+  function forEachScrollableAncestor(el, xScrollFn, yScrollFn) {
+    el = el.parentNode;
+    while (el) {
+      if (el instanceof HTMLElement) {
+        let rect = null;
+        if (isScrollable(el, 'x')) {
+          if (!rect) {
+            rect = getBoundingRect(el);
+          }
+          xScrollFn(el, rect);
+        }
+        if (isScrollable(el, 'y')) {
+          if (!rect) {
+            rect = getBoundingRect(el);
+          }
+          yScrollFn(el, rect);
+        }
+      }
+      el = el.parentNode;
+    }
+  }
+
+  function scrollIntoView(el) {
+    const eltRect = getBoundingRect(el);
+    forEachScrollableAncestor(el,
+      function(el, rect) {
+        let xScroll = 0;
+        if (eltRect.left < rect.left) {
+          xScroll = eltRect.left - rect.left;
+        } else if (rect.right < eltRect.right) {
+          xScroll = eltRect.right - rect.right;
+        }
+        if (xScroll) {
+          el.scrollLeft += xScroll;
+          eltRect.left -= xScroll;
+          eltRect.right -= xScroll;
+        }
+      }, function(el, rect) {
+        let yScroll = 0;
+        if (eltRect.top < rect.top) {
+          yScroll = eltRect.top - rect.top;
+        } else if (rect.bottom < eltRect.bottom) {
+          yScroll = eltRect.bottom - rect.bottom;
+        }
+        if (yScroll) {
+          el.scrollTop += yScroll;
+          eltRect.top -= yScroll;
+          eltRect.bottom -= yScroll;
+        }
+      }
+    );
   }
 
   function moveSelection(ev) {
@@ -830,6 +925,16 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     const dest = move(ev, selectionRow, selectionColumn);
     if (dest) {
       setSelection(anchorRow, anchorColumn, dest.row, dest.column);
+      const cell = getCell(selectionRow, selectionColumn);
+      const br0 = selectionRow + compare(selectionRow, anchorRow);
+      const br = clampRow(br0);
+      const bc0 = selectionColumn === 0? -1
+        : selectionColumn + compare(selectionColumn, anchorColumn);
+      const bc = clampColumn(bc0);
+      const cell2 = br0 === -1? getColumnHeaderRow()[bc0 + 1]
+        : (bc0 === -1? getRowHeader(br) : getCell(br, bc));
+      scrollIntoView(cell2);
+      scrollIntoView(cell);
       return false;
     }
   }
