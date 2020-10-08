@@ -108,6 +108,28 @@ describe('dataentrygrid', async function () {
       await checkSelection(driver, startRow, endRow, 0, 2, 'row header dragged');
     });
 
+    it('can be set with a mouse click on the column header', async function() {
+      const column = 1;
+      await columnHeaderClick(driver, column);
+      await checkSelection(driver, 0, 1, column, column, 'column header clicked');
+    });
+
+    it('can be set with a mouse drag on the column headers', async function() {
+      const startColumn = 1;
+      const endColumn = 0;
+      const startHeader = await columnHeaderElement(driver, startColumn);
+      const endHeader = await columnHeaderElement(driver, endColumn);
+      await driver.actions({bridge: true})
+        .move({origin: startHeader}).press()
+        .move({origin: endHeader}).release().perform();
+      await checkSelection(driver, 0, 1, startColumn, endColumn, 'column header dragged');
+    });
+
+    it('can be set with a mouse click on the table header', async function() {
+      await columnHeaderClick(driver, -1);
+      await checkSelection(driver, 0, 1, 0, 2, 'table header clicked');
+    });
+
     it('can be set with a mouse drag', async function() {
       const startRow = 1;
       const startColumn = 1;
@@ -833,6 +855,16 @@ async function rowHeaderMenuSelect(driver, row, option) {
 
 function rowHeaderMenuLocator(option) {
   return By.css(`#input #input-row-menu option[value='${option}']`);
+}
+
+async function columnHeaderElement(driver, column) {
+  return await driver.findElement(
+    By.css(`#input thead th:nth-child(${column + 2})`));
+}
+
+async function columnHeaderClick(driver, column) {
+  const ch = await columnHeaderElement(driver, column);
+  await driver.actions({ bridge: true }).click(ch).perform();
 }
 
 async function rowHeaderClick(driver, row) {

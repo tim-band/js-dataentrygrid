@@ -24,13 +24,15 @@ At the moment, just an HTML proof-of-concept with the following features:
 -   Localization
 -   Useful API
 -   Provide undo and redo buttons
+-   Row/Column/Table header click to select
 
 but lacking:
 
+-   Unfixed headers (so columns can be added and deleted, headers
+    are A,B,C...)
 -   'Cut' and 'Copy' sometimes grayed out on Chrome's context menu,
     because nothing is selected.
--   Check that it works on IE and Edge
--   Touch screen support
+-   Touch screen support?
 
 # API
 

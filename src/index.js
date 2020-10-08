@@ -469,7 +469,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   function forEachColumn(row, columnStart, columnEnd, callback) {
     const cs = row.getElementsByTagName('TD');
     let cEnd = (cs.length < columnEnd ? cs.length : columnEnd) - columnStart;
-    for (var i = 0; i < cEnd; ++i) {
+    for (let i = 0; i < cEnd; ++i) {
       callback(cs[columnStart + i], i, columnStart + i);
     }
   }
@@ -485,6 +485,29 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   }
 
   function setCellMouseHandlers(firstRow) {
+    const chr = getColumnHeaderRow();
+    if (chr.length) {
+      const h = chr[0];
+      h.onmousedown = function() {
+        setSelection(0, 0, rowCount - 1, columnCount - 1);
+        refocus();
+      };
+    }
+    for (let i = 1; i < chr.length; ++i) {
+      const h = chr[i];
+      const c = i - 1;
+      h.onmousedown = function() {
+        setSelection(0, c, rowCount - 1, c);
+        refocus();
+      };
+      h.onmouseenter = function(ev) {
+        ev = getEvent(ev);
+        if (ev.button === 0) {
+          setSelection(anchorRow, anchorColumn,
+            anchorRow === 0? rowCount - 1 : 0, c);
+        }
+      };
+    }
     forEachRow(firstRow, rowCount, function (row, i, thisRow) {
       const rowHeaders = row.getElementsByTagName('TH');
       if (0 < rowHeaders.length) {
