@@ -490,13 +490,29 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       if (0 < rowHeaders.length) {
         const rh = rowHeaders[0];
         rh.textContent = thisRow + 1;
-        rh.onclick = refocus;
+        rh.onmousedown = function(ev) {
+          ev = getEvent(ev);
+          if (ev.button === 0) {
+            setSelection(thisRow, 0, thisRow, columnCount - 1);
+            refocus();
+          }
+        };
+        rh.onmouseenter = function (ev) {
+          ev = getEvent(ev);
+          // stretch selection over this row
+          if (ev.buttons & 1) {
+            setSelection(anchorRow, anchorColumn, thisRow,
+              anchorColumn === 0? columnCount - 1 : 0);
+            refocus();
+            return preventDefault(ev);
+          }
+        };
         rh.oncontextmenu = function (ev) {
           ev = getEvent(ev);
           const select = rowHeaderMenu(ev, thisRow);
           select.focus();
           return preventDefault(ev);
-        }
+        };
         forEachColumn(row, 0, columnCount, function (cell, j, thisColumn) {
           cell.onclick = function () {
             goToCell(thisRow, thisColumn);
@@ -519,7 +535,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
               refocus();
               return preventDefault(ev);
             }
-          }
+          };
         });
       }
     });

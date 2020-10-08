@@ -91,6 +91,23 @@ describe('dataentrygrid', async function () {
       await checkSelection(driver, row, row, column, column);
     });
 
+    it('can be set with a mouse click on the row header', async function() {
+      const row = 1;
+      await rowHeaderClick(driver, row);
+      await checkSelection(driver, row, row, 0, 2, 'row header clicked');
+    });
+
+    it('can be set with a mouse drag on the row headers', async function() {
+      const startRow = 1;
+      const endRow = 0;
+      const startHeader = await rowHeaderElement(driver, startRow);
+      const endHeader = await rowHeaderElement(driver, endRow);
+      await driver.actions({bridge: true})
+        .move({origin: startHeader}).press()
+        .move({origin: endHeader}).release().perform();
+      await checkSelection(driver, startRow, endRow, 0, 2, 'row header dragged');
+    });
+
     it('can be set with a mouse drag', async function() {
       const startRow = 1;
       const startColumn = 1;
@@ -600,7 +617,7 @@ describe('dataentrygrid', async function () {
       }];
       for (const i in text) {
         await setText(driver, text[i]);
-        await rowHeaderClick(driver, 1);
+        await rowHeaderRightClick(driver, 1);
         const deleteText = await driver.findElement(rowHeaderMenuLocator('delete')).getText();
         assert.strictEqual(deleteText, text[i].deleteRow);
         const beforeText = await driver.findElement(rowHeaderMenuLocator('add-before')).getText();
@@ -805,7 +822,7 @@ async function assertDisabled(driver, buttonId) {
 }
 
 async function rowHeaderMenuSelect(driver, row, option) {
-  await rowHeaderClick(driver, row);
+  await rowHeaderRightClick(driver, row);
   const optionElement = await driver.findElement(
     rowHeaderMenuLocator(option));
   await driver.actions({bridge: true})
@@ -819,9 +836,18 @@ function rowHeaderMenuLocator(option) {
 }
 
 async function rowHeaderClick(driver, row) {
-  const rowHeader = await driver.findElement(
-    By.css(`#input tbody tr:nth-child(${row + 1}) th:nth-child(1)`));
+  const rowHeader = await rowHeaderElement(driver, row);
+  await driver.actions({ bridge: true }).click(rowHeader).perform();
+}
+
+async function rowHeaderRightClick(driver, row) {
+  const rowHeader = await rowHeaderElement(driver, row);
   await driver.actions({ bridge: true }).contextClick(rowHeader).perform();
+}
+
+async function rowHeaderElement(driver, row) {
+  return await driver.findElement(
+    By.css(`#input tbody tr:nth-child(${row + 1}) th:nth-child(1)`));
 }
 
 function cellsToText(rows) {
