@@ -2,7 +2,10 @@
  * Initialize an HTML table to be a data entry grid.
  * 
  * @param {string}  containerId id of the `table` element you want to make interactive
- * @param {string[]} headers array of strings to become the new column headers
+ * @param {string[]|number} headers array of strings to become the new column headers
+ * or the number of columns to be created. If a number is given, the columns will be
+ * named 'A', 'B', 'C' and so on, and the set of columns will be able to be added and
+ * deleted. If an array of strings is given, the columns will be fixed.
  * @param {number} newRowCount number of rows the table should now have
  * @returns {Object} The table object.
  */
@@ -1215,16 +1218,19 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   return {
     /**
      * Re-initialize the table.
-     * @param {string[]} headers Array of strings to become the new column headers
-     * @param {number|string[][]} rows Number of rows the table should now have, or array of
-     * rows, each of which is an array of the cells in that row. Any row longer than
-     * the headers array is truncated.
+     * @param {string[]|number} headers Array of strings to become the new
+     * column headers, or the number of columns to create if column addition
+     * and deletion is required.
+     * @param {number|string[][]} rows Number of rows the table should now
+     * have, or array of rows, each of which is an array of the cells in that row.
+     * Any row longer than the headers array is truncated.
      */
     init: init,
     /**
      * Sets localized text for the row header context table.
      * @param {Object} newText Text of table ids to strings. The ids currently
-     * recognized are `deleteRow`, `addRowBefore` and `addRowAfter`.
+     * recognized are `deleteRow`, `addRowBefore`, `addRowAfter`,
+     * `deleteColumn`, `addColumnBefore` and `addColumnAfter`.
      */
     setText: function (newText) {
       for (const k in localizedText) {
