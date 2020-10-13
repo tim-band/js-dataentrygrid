@@ -20,8 +20,12 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   var localizedText = {
     deleteRow: 'Delete row',
     addRowBefore: 'Add row before',
-    addRowAfter: 'Add row after'
+    addRowAfter: 'Add row after',
+    deleteColumn: 'Delete column',
+    addColumnBefore: 'Add column before',
+    addColumnAfter: 'Add column after'
   };
+  let columnsAreFlexible = false;
   const undo = undoSystem();
   function noop() { return null; }
   var commitEdit = noop;
@@ -98,7 +102,23 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return e;
   }
 
+  const unicodeForA = 'A'.charCodeAt(0);
+  function flexibleColumnName(c) {
+    const u = String.fromCharCode(unicodeForA + c % 26);
+    return c < 26? u : String.fromCharCode(c / 26 + unicodeForA - 1).concat(u);
+  }
+
   function init(headers, rows) {
+    if (typeof(headers) === 'number') {
+      columnsAreFlexible = true;
+      const n = headers;
+      headers = [];
+      for(let i = 0; i < n; ++i) {
+        headers.push(flexibleColumnName(i));
+      }
+    } else {
+      columnsAreFlexible = false;
+    }
     let data = [];
     if (typeof(rows) === 'object') {
       data = rows;
@@ -331,6 +351,114 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     };
   }
 
+  function insertColumns(c, count) {
+    undo.undoable(commitEdit());
+    const hrow = getHeaderTr();
+    let thFn;
+    if (c < columnCount) {
+      const b = hrow.childNodes[c + 1];
+      thFn = function(child) { hrow.insertBefore(child, b); };
+    } else {
+      thFn = function (child) { hrow.appendChild(child); };
+    }
+    for (let i = 0; i < count; ++i) {
+      thFn(document.createElement('TH'));
+    }
+    for (let r = 0; r !== rowCount; ++r) {
+      const row = getRow(r);
+      if (c === columnCount) {
+        for (let i = 0; i < count; ++i) {
+          row.appendChild(document.createElement('TD'));
+        }
+      } else {
+        const b = row.childNodes[c+1];
+        for (let i = 0; i < count; ++i) {
+          row.insertBefore(document.createElement('TD'), b);
+        }
+      }
+    }
+    columnCount += count;
+    let selectionEndsMoved = 0;
+    if (c <= anchorColumn) {
+      selectionEndsMoved += 1;
+      anchorColumn += count;
+    }
+    if (c <= selectionColumn) {
+      selectionEndsMoved += 1;
+      selectionColumn += count;
+    }
+    setCellMouseHandlers(0);
+    if (selectionEndsMoved === 1) {
+      const r0 = Math.min(selectionRow, anchorRow);
+      const r1 = Math.max(selectionRow, anchorRow) + 1;
+      forEachRow(r0, r1, row => {
+        forEachColumn(row, c, c + count, cell => {
+          cell.classList.add('selected');
+        });
+      });
+    }
+    setFlexibleHeaderNames(c);
+    return function () {
+      return deleteColumns(c, count);
+    };
+  }
+
+  function deleteColumns(c, count) {
+    undo.undoable(commitEdit());
+    const values = getCells(0, rowCount, c, c + count);
+    const hrow = getHeaderTr();
+    for (let i = 0; i !== count; ++i) {
+      hrow.removeChild(hrow.childNodes[c + 1]);
+    }
+    for (let r = 0; r !== rowCount; ++r) {
+      const row = getRow(r);
+      for (let i = 0; i < count; ++i) {
+        row.removeChild(row.childNodes[c + 1]);
+      }
+    }
+    columnCount -= count;
+    if (c < anchorColumn) {
+      if (c + count < anchorColumn) {
+        anchorColumn -= count;
+      } else {
+        anchorColumn = c;
+      }
+    }
+    if (c < selectionColumn) {
+      if (c + count < selectionColumn) {
+        selectionColumn -= count;
+      } else {
+        selectionColumn = c;
+      }
+    }
+    if (columnCount <= selectionColumn) {
+      selectionColumn = columnCount - 1;
+    }
+    if (columnCount <= anchorColumn) {
+      anchorColumn = columnCount - 1;
+      setSelection(anchorRow, anchorColumn, selectionRow, selectionColumn);
+    }
+    setCellMouseHandlers(0);
+    setFlexibleHeaderNames(c);
+    return function () {
+      const inverse = insertColumns(c, count);
+      putCells(0, rowCount, c, c + count, values);
+      return inverse;
+    };
+  }
+
+  function setFlexibleHeaderNames(c) {
+    const hrow = getHeaderTr();
+    for (let i = c; i < columnCount; ++i) {
+      hrow.childNodes[i + 1].textContent = flexibleColumnName(i);
+    }
+  }
+
+  function getHeaderTr() {
+    const thead = table.getElementsByTagName('THEAD')[0];
+    return thead.getElementsByTagName('TR')[0];
+  }
+
   function markSelectedColumns(row) {
     forEachSelectedColumn(row, function (cell) {
       cell.classList.add('selected');
@@ -422,7 +550,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         count = anchorRow - selectionRow + 1;
       }
     }
-    const id = table.getAttribute('id').concat('-row-menu');
+    const id = table.getAttribute('id').concat('-context-menu');
     const cMenu = createElement('SELECT', { id: id, size: 3 });
     const deleteOption = deleteRowsOption();
     deleteOption.onclick = function () {
@@ -442,20 +570,83 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       removeContextMenu(cMenu);
     }
     cMenu.appendChild(addAfterOption);
+    attachContextMenu(ev, cMenu);
+    return cMenu;
+  }
+
+  function deleteColumnsOption(count) {
+    const el = createElement('OPTION', { value: 'column-delete' });
+    el.textContent = localizedText.deleteColumn;
+    return el;
+  }
+
+  function addColumnsBeforeOption(count) {
+    const el = createElement('OPTION', { value: 'column-add-before' });
+    el.textContent = localizedText.addColumnBefore;
+    return el;
+  }
+
+  function addColumnsAfterOption(count) {
+    const el = createElement('OPTION', { value: 'column-add-after' });
+    el.textContent = localizedText.addColumnAfter;
+    return el;
+  }
+
+  function columnHeaderMenu(ev, c) {
+    const id = table.getAttribute('id').concat('-context-menu');
+    const cMenu = createElement('SELECT', { id: id, size: 3 });
+    if (columnsAreFlexible) {
+      let firstColumn = c;
+      let count = 1;
+      if ((c < anchorColumn && c < selectionColumn)
+        || (anchorColumn < c && selectionColumn < c)) {
+        setSelection(0, c, rowCount - 1, c);
+      } else {
+        if (anchorColumn < selectionColumn) {
+          firstColumn = anchorColumn;
+          count = selectionColumn - anchorColumn + 1;
+        } else {
+          firstColumn = selectionColumn;
+          count = anchorColumn - selectionColumn + 1;
+        }
+      }
+      const deleteOption = deleteColumnsOption();
+      deleteOption.onclick = function () {
+        undo.undoable(deleteColumns(firstColumn, count));
+        removeContextMenu(cMenu);
+      }
+      cMenu.appendChild(deleteOption);
+      const addBeforeOption = addColumnsBeforeOption();
+      addBeforeOption.onclick = function () {
+        undo.undoable(insertColumns(firstColumn, count));
+        removeContextMenu(cMenu);
+      }
+      cMenu.appendChild(addBeforeOption);
+      const addAfterOption = addColumnsAfterOption();
+      addAfterOption.onclick = function () {
+        undo.undoable(insertColumns(firstColumn + count, count));
+        removeContextMenu(cMenu);
+      }
+      cMenu.appendChild(addAfterOption);
+    }
+    attachContextMenu(ev, cMenu);
+    return cMenu;
+  }
+
+  function attachContextMenu(ev, cMenu) {
     const mousePosition = getMouseCoordinates(ev);
     cMenu.style.position = 'absolute';
     cMenu.style.left = mousePosition.x + 'px';
     cMenu.style.top = mousePosition.y + 'px';
     cMenu.tabIndex = -1;
     cMenu.zIndex = 10;
-    cMenu.onblur = function() { removeContextMenu(cMenu); };
+    cMenu.onblur = function () { removeContextMenu(cMenu); };
     cMenu.contentEditable = false;
     if (contextMenu) {
       removeContextMenu(contextMenu);
     }
     contextMenu = cMenu;
     table.appendChild(cMenu);
-    return cMenu;
   }
 
   function forEachRow(rowStart, rowEnd, callback) {
@@ -494,19 +685,32 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       };
     }
     for (let i = 1; i < chr.length; ++i) {
+      const thisColumn = i - 1;
       const h = chr[i];
       const c = i - 1;
-      h.onmousedown = function() {
-        setSelection(0, c, rowCount - 1, c);
-        refocus();
+      h.onmousedown = function(ev) {
+        if (ev.button === 0) {
+          undo.undoable(commitEdit());
+          setSelection(0, c, rowCount - 1, c);
+          refocus();
+          return preventDefault(ev);
+        }
       };
       h.onmouseenter = function(ev) {
         ev = getEvent(ev);
-        if (ev.button === 0) {
+        // stretch selection over this row
+        if (ev.buttons & 1) {
           setSelection(anchorRow, anchorColumn,
-            anchorRow === 0? rowCount - 1 : 0, c);
+            anchorRow === 0? rowCount - 1 : 0, thisColumn);
+          refocus();
+          return preventDefault(ev);
         }
       };
+      h.oncontextmenu = function(ev) {
+        ev = getEvent(ev);
+        columnHeaderMenu(ev, thisColumn).focus();
+        return preventDefault(ev);
+    };
     }
     forEachRow(firstRow, rowCount, function (row, i, thisRow) {
       const rowHeaders = row.getElementsByTagName('TH');
@@ -532,8 +736,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         };
         rh.oncontextmenu = function (ev) {
           ev = getEvent(ev);
-          const select = rowHeaderMenu(ev, thisRow);
-          select.focus();
+          rowHeaderMenu(ev, thisRow).focus();
           return preventDefault(ev);
         };
         forEachColumn(row, 0, columnCount, function (cell, j, thisColumn) {

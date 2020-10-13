@@ -117,11 +117,7 @@ describe('dataentrygrid', async function () {
     it('can be set with a mouse drag on the column headers', async function() {
       const startColumn = 1;
       const endColumn = 0;
-      const startHeader = await columnHeaderElement(driver, startColumn);
-      const endHeader = await columnHeaderElement(driver, endColumn);
-      await driver.actions({bridge: true})
-        .move({origin: startHeader}).press()
-        .move({origin: endHeader}).release().perform();
+      await dragColumnHeaders(driver, startColumn, endColumn);
       await checkSelection(driver, 0, 1, startColumn, endColumn, 'column header dragged');
     });
 
@@ -550,16 +546,58 @@ describe('dataentrygrid', async function () {
       for (let h = 0; h != headerss.length; ++h) {
         const headers = headerss[h];
         await init(driver, headers, 5);
-        const ths = await driver.findElements(By.css('table#input thead th'));
-        let actualHeaders = [];
-        for (let i = 1; i < ths.length; ++i) {
-          const e = await ths[i].getText();
-          actualHeaders.push(e);
-        }
+        let actualHeaders = await readHeaders(driver);
         assert.deepStrictEqual(actualHeaders, headers);
         const apiHeaders = await getColumnHeaders(driver);
         assert.deepStrictEqual(apiHeaders, headers);
       }
+    });
+
+    it('can be set automatically when requesting flexible columns', async function() {
+      const columnCount = 60;
+      await init(driver, columnCount, 3);
+      const actualHeaders = await readHeaders(driver);
+      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      const headers = [];
+      for(let i = 0; i != columnCount; ++i) {
+        const a = i < 26? '' : alphabet[Math.floor(i / 26) - 1];
+        const b = alphabet[i % 26];
+        headers.push(a.concat(b));
+      }
+      assert.deepStrictEqual(actualHeaders, headers);
+    });
+
+    it('do not permit column addition or deletion if inflexible', async function() {
+      [
+        {headers: ['in', 'flexy', 'ball'], expectedElements: 0},
+        {headers: 3, expectedElements: 1}
+      ].forEach(async function({headers, expectedElements}) {
+        await init(driver, headers, 3);
+        await rowHeaderRightClick(driver, row);
+        ['column-delete', 'column-add-before', 'column-add-after'].forEach(async function(option) {
+          const optionElements = await driver.findElements(
+            contextMenuLocator(option));
+          assert.strictEqual(optionElements.length, expectedElements);
+        });
+      });
+    });
+
+    it('keep the same when columns deleted', async function() {
+      await init(driver, 5, 3);
+      await dragColumnHeaders(driver, 2, 3);
+      await columnHeaderRightClick(driver, 3);
+      await contextMenuSelect(driver, 'column-delete');
+      const headers = await getColumnHeaders(driver);
+      assert.deepStrictEqual(headers, ['A', 'B', 'C']);
+    });
+
+    it('are correct when columns are added in the middle', async function() {
+      await init(driver, 5, 3);
+      await dragColumnHeaders(driver, 2, 3);
+      await columnHeaderRightClick(driver, 3);
+      await contextMenuSelect(driver, 'column-add-before');
+      const headers = await getColumnHeaders(driver);
+      assert.deepStrictEqual(headers, ['A', 'B', 'C', 'D', 'E', 'F', 'G']);
     });
   });
 
@@ -621,6 +659,58 @@ describe('dataentrygrid', async function () {
     });
   });
 
+  describe('flexible columns', function() {
+    const data = [
+      ['12', '2', '34', '4', '56'],
+      ['0.4', '3.2', '1.1', '6.5', '4.4']
+    ];
+
+    beforeEach(async function() {
+      await doGet();
+      await init(driver, 5, data);
+    });
+
+    it('can be added', async function() {
+      const cc = await getColumnCount(driver);
+      await columnHeaderMenuSelect(driver, 3, 'column-add-before');
+      const cc2 = await getColumnCount(driver);
+      assert.strictEqual(cc2, cc + 1,
+        'row count (from API) does not increase when adding a column before');
+      await assertCellContents(driver, 1, 2, data[1][2]);
+      await assertCellContents(driver, 1, 3, '');
+      await assertCellContents(driver, 1, 4, data[1][3]);
+      await clickCell(driver, 0, 0);
+      await sendKeys(driver, Key.SHIFT, Key.ARROW_RIGHT);
+      await columnHeaderMenuSelect(driver, 1, 'column-add-after');
+      const cc3 = await getColumnCount(driver);
+      assert.strictEqual(cc3, cc2 + 2,
+        'row count (from API) does not increase by 2 when adding a column after');
+      await assertCellContents(driver, 0, 1, data[0][1]);
+      await assertCellContents(driver, 0, 2, '');
+      await assertCellContents(driver, 0, 3, '');
+      await assertCellContents(driver, 0, 4, data[0][2]);
+    });
+
+    it('can be deleted', async function() {
+      const cc = await getColumnCount(driver);
+      await clickCell(driver, 1, 4);
+      await columnHeaderMenuSelect(driver, 3, 'column-delete');
+      const cc2 = await getColumnCount(driver);
+      assert.strictEqual(cc2, cc - 1,
+        'row count (from API) does not decrease when deleting a column');
+      await assertCellContents(driver, 1, 2, data[1][2]);
+      await assertCellContents(driver, 1, 3, data[1][4]);
+      await clickCell(driver, 0, 0);
+      await sendKeys(driver, Key.SHIFT, Key.ARROW_RIGHT);
+      await columnHeaderMenuSelect(driver, 1, 'column-delete');
+      const cc3 = await getColumnCount(driver);
+      assert.strictEqual(cc3, cc2 - 2,
+        'row count (from API) does not decrease by 2 when deleting two columns');
+      await assertCellContents(driver, 0, 0, data[0][2]);
+      await assertCellContents(driver, 0, 1, data[0][4]);
+    });
+  });
+
   describe('row header context menu', function() {
 
     beforeEach(async function () {
@@ -640,11 +730,11 @@ describe('dataentrygrid', async function () {
       for (const i in text) {
         await setText(driver, text[i]);
         await rowHeaderRightClick(driver, 1);
-        const deleteText = await driver.findElement(rowHeaderMenuLocator('delete')).getText();
+        const deleteText = await driver.findElement(contextMenuLocator('delete')).getText();
         assert.strictEqual(deleteText, text[i].deleteRow);
-        const beforeText = await driver.findElement(rowHeaderMenuLocator('add-before')).getText();
+        const beforeText = await driver.findElement(contextMenuLocator('add-before')).getText();
         assert.strictEqual(beforeText, text[i].addRowBefore);
-        const afterText = await driver.findElement(rowHeaderMenuLocator('add-after')).getText();
+        const afterText = await driver.findElement(contextMenuLocator('add-after')).getText();
         assert.strictEqual(afterText, text[i].addRowAfter);
         await clickCell(driver, 0, 0);
       }
@@ -795,6 +885,24 @@ describe('dataentrygrid', async function () {
   });
 });
 
+async function dragColumnHeaders(driver, startColumn, endColumn) {
+  const startHeader = await columnHeaderElement(driver, startColumn);
+  const endHeader = await columnHeaderElement(driver, endColumn);
+  await driver.actions({ bridge: true })
+    .move({ origin: startHeader }).press()
+    .move({ origin: endHeader }).release().perform();
+}
+
+async function readHeaders(driver) {
+  const ths = await driver.findElements(By.css('table#input thead th'));
+  let actualHeaders = [];
+  for (let i = 1; i < ths.length; ++i) {
+    const e = await ths[i].getText();
+    actualHeaders.push(e);
+  }
+  return actualHeaders;
+}
+
 async function setScroll(driver, element, x, y) {
   await driver.executeScript(`arguments[0].scrollTo(${x}, ${y});`, element);
 }
@@ -843,18 +951,27 @@ async function assertDisabled(driver, buttonId) {
   assert(disabled, buttonId + ' should be disabled');
 }
 
-async function rowHeaderMenuSelect(driver, row, option) {
-  await rowHeaderRightClick(driver, row);
-  const optionElement = await driver.findElement(
-    rowHeaderMenuLocator(option));
-  await driver.actions({bridge: true})
-      .move({origin: optionElement})
-      .click()
-      .perform();
+async function columnHeaderMenuSelect(driver, column, option) {
+  await columnHeaderRightClick(driver, column);
+  await contextMenuSelect(driver, option);
 }
 
-function rowHeaderMenuLocator(option) {
-  return By.css(`#input #input-row-menu option[value='${option}']`);
+async function rowHeaderMenuSelect(driver, row, option) {
+  await rowHeaderRightClick(driver, row);
+  await contextMenuSelect(driver, option);
+}
+
+async function contextMenuSelect(driver, option) {
+  const optionElement = await driver.findElement(
+    contextMenuLocator(option));
+  await driver.actions({ bridge: true })
+    .move({ origin: optionElement })
+    .click()
+    .perform();
+}
+
+function contextMenuLocator(option) {
+  return By.css(`#input #input-context-menu option[value='${option}']`);
 }
 
 async function columnHeaderElement(driver, column) {
@@ -865,6 +982,11 @@ async function columnHeaderElement(driver, column) {
 async function columnHeaderClick(driver, column) {
   const ch = await columnHeaderElement(driver, column);
   await driver.actions({ bridge: true }).click(ch).perform();
+}
+
+async function columnHeaderRightClick(driver, column) {
+  const columnHeader = await columnHeaderElement(driver, column);
+  await driver.actions({ bridge: true }).contextClick(columnHeader).perform();
 }
 
 async function rowHeaderClick(driver, row) {
