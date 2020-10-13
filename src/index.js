@@ -2,7 +2,10 @@
  * Initialize an HTML table to be a data entry grid.
  * 
  * @param {string}  containerId id of the `table` element you want to make interactive
- * @param {string[]} headers array of strings to become the new column headers
+ * @param {string[]|number} headers array of strings to become the new column headers
+ * or the number of columns to be created. If a number is given, the columns will be
+ * named 'A', 'B', 'C' and so on, and the set of columns will be able to be added and
+ * deleted. If an array of strings is given, the columns will be fixed.
  * @param {number} newRowCount number of rows the table should now have
  * @returns {Object} The table object.
  */
@@ -18,6 +21,8 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   var contextMenu = null;
   var hiddenTextarea = null;
   var localizedText = {
+    cut: 'Cut',
+    copy: 'Copy',
     deleteRow: 'Delete row',
     addRowBefore: 'Add row before',
     addRowAfter: 'Add row after',
@@ -517,120 +522,126 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     doGoToCell(r, c);
   }
 
-  function deleteRowsOption(count) {
-    const el = createElement('OPTION', { value: 'delete' });
-    el.textContent = localizedText.deleteRow;
-    return el;
+  function addOption(menu, id, callback, text) {
+    const e = createElement('OPTION', { value: id });
+    e.textContent = text;
+    e.onclick = callback;
+    menu.appendChild(e);
   }
 
-  function addRowsBeforeOption(count) {
-    const el = createElement('OPTION', { value: 'add-before' });
-    el.textContent = localizedText.addRowBefore;
-    return el;
+  function addRowsOptions(menu, firstRow, count) {
+    addOption(menu, 'delete', function() {
+      undo.undoable(deleteRows(firstRow, count));
+      removeContextMenu(menu);
+    }, localizedText.deleteRow);
+    addOption(menu, 'add-before', function() {
+      undo.undoable(insertRows(firstRow, count));
+      removeContextMenu(menu);
+    }, localizedText.addRowBefore);
+    addOption(menu, 'add-after', function() {
+      undo.undoable(insertRows(firstRow + count, count));
+      removeContextMenu(menu);
+    }, localizedText.addRowAfter);
   }
 
-  function addRowsAfterOption(count) {
-    const el = createElement('OPTION', { value: 'add-after' });
-    el.textContent = localizedText.addRowAfter;
-    return el;
+  function addColumnsOptions(menu, firstColumn, count) {
+    addOption(menu, 'column-delete', function() {
+      undo.undoable(deleteColumns(firstColumn, count));
+      removeContextMenu(menu);
+    }, localizedText.deleteColumn);
+    addOption(menu, 'column-add-before', function() {
+      undo.undoable(insertColumns(firstColumn, count));
+      removeContextMenu(menu);
+    }, localizedText.addColumnBefore);
+    addOption(menu, 'column-add-after', function() {
+      undo.undoable(insertColumns(firstColumn + count, count));
+      removeContextMenu(menu);
+    }, localizedText.addColumnAfter);
+  }
+
+  function addClipboardOptions(menu) {
+    const cb = window.navigator.clipboard;
+    addOption(menu, 'cut', function() {
+      if (cb && cb.writeText) {
+        cb.writeText(copySelection()).then(clearSelection);
+      } else {
+        document.execCommand('cut');
+      }
+      removeContextMenu(menu);
+      refocus();
+    }, localizedText.cut);
+    addOption(menu, 'copy', function() {
+      if (cb && cb.writeText) {
+        cb.writeText(copySelection());
+      } else {
+        document.execCommand('copy');
+      }
+      removeContextMenu(menu);
+      refocus();
+    }, localizedText.copy);
   }
 
   function rowHeaderMenu(ev, r) {
-    let firstRow = r;
-    let count = 1;
-    if ((r < anchorRow && r < selectionRow)
-      || (anchorRow < r && selectionRow < r)) {
+    let r1 = Math.min(anchorRow, selectionRow);
+    let rc = Math.abs(selectionRow - anchorRow) + 1;
+    if (r < r1 || r1 + rc <= r) {
+      r1 = r;
+      rc = 1;
       setSelection(r, 0, r, columnCount - 1);
-    } else {
-      if (anchorRow < selectionRow) {
-        firstRow = anchorRow;
-        count = selectionRow - anchorRow + 1;
-      } else {
-        firstRow = selectionRow;
-        count = anchorRow - selectionRow + 1;
-      }
     }
     const id = table.getAttribute('id').concat('-context-menu');
-    const cMenu = createElement('SELECT', { id: id, size: 3 });
-    const deleteOption = deleteRowsOption();
-    deleteOption.onclick = function () {
-      undo.undoable(deleteRows(firstRow, count));
-      removeContextMenu(cMenu);
-    }
-    cMenu.appendChild(deleteOption);
-    const addBeforeOption = addRowsBeforeOption();
-    addBeforeOption.onclick = function () {
-      undo.undoable(insertRows(firstRow, count));
-      removeContextMenu(cMenu);
-    }
-    cMenu.appendChild(addBeforeOption);
-    const addAfterOption = addRowsAfterOption();
-    addAfterOption.onclick = function () {
-      undo.undoable(insertRows(firstRow + count, count));
-      removeContextMenu(cMenu);
-    }
-    cMenu.appendChild(addAfterOption);
-    attachContextMenu(ev, cMenu);
-    return cMenu;
-  }
-
-  function deleteColumnsOption(count) {
-    const el = createElement('OPTION', { value: 'column-delete' });
-    el.textContent = localizedText.deleteColumn;
-    return el;
-  }
-
-  function addColumnsBeforeOption(count) {
-    const el = createElement('OPTION', { value: 'column-add-before' });
-    el.textContent = localizedText.addColumnBefore;
-    return el;
-  }
-
-  function addColumnsAfterOption(count) {
-    const el = createElement('OPTION', { value: 'column-add-after' });
-    el.textContent = localizedText.addColumnAfter;
-    return el;
+    const menu = createElement('SELECT', { id: id, size: 5 });
+    addRowsOptions(menu, r1, rc);
+    addClipboardOptions(menu);
+    attachContextMenu(ev, menu);
+    return menu;
   }
 
   function columnHeaderMenu(ev, c) {
     const id = table.getAttribute('id').concat('-context-menu');
-    const cMenu = createElement('SELECT', { id: id, size: 3 });
+    const menu = createElement('SELECT', {
+      id: id,
+      size: columnsAreFlexible? 5 : 2
+    });
     if (columnsAreFlexible) {
-      let firstColumn = c;
-      let count = 1;
-      if ((c < anchorColumn && c < selectionColumn)
-        || (anchorColumn < c && selectionColumn < c)) {
+      let c1 = Math.min(anchorColumn, selectionColumn);
+      let cc = Math.abs(selectionColumn - anchorColumn) + 1;
+      if (c < c1 || c1 + cc <= c) {
+        c1 = c;
+        cc = 1;
         setSelection(0, c, rowCount - 1, c);
-      } else {
-        if (anchorColumn < selectionColumn) {
-          firstColumn = anchorColumn;
-          count = selectionColumn - anchorColumn + 1;
-        } else {
-          firstColumn = selectionColumn;
-          count = anchorColumn - selectionColumn + 1;
-        }
       }
-      const deleteOption = deleteColumnsOption();
-      deleteOption.onclick = function () {
-        undo.undoable(deleteColumns(firstColumn, count));
-        removeContextMenu(cMenu);
-      }
-      cMenu.appendChild(deleteOption);
-      const addBeforeOption = addColumnsBeforeOption();
-      addBeforeOption.onclick = function () {
-        undo.undoable(insertColumns(firstColumn, count));
-        removeContextMenu(cMenu);
-      }
-      cMenu.appendChild(addBeforeOption);
-      const addAfterOption = addColumnsAfterOption();
-      addAfterOption.onclick = function () {
-        undo.undoable(insertColumns(firstColumn + count, count));
-        removeContextMenu(cMenu);
-      }
-      cMenu.appendChild(addAfterOption);
+      addColumnsOptions(menu, c1, cc);
     }
-    attachContextMenu(ev, cMenu);
-    return cMenu;
+    addClipboardOptions(menu);
+    attachContextMenu(ev, menu);
+    return menu;
+  }
+
+  function cellContextMenu(ev, r, c) {
+    let r1 = Math.min(anchorRow, selectionRow);
+    let rc = Math.abs(selectionRow - anchorRow) + 1;
+    let c1 = Math.min(anchorColumn, selectionColumn);
+    let cc = Math.abs(selectionColumn - anchorColumn) + 1;
+    if (r < r1 || r1 + rc <= r || c < c1 || c1 + cc <= c) {
+      r1 = r;
+      rc = 1;
+      c1 = c;
+      cc = 1;
+      setSelection(r, c, r, c);
+    }
+    const id = table.getAttribute('id').concat('-context-menu');
+    const menu = createElement('SELECT', {
+      id: id,
+      size: columnsAreFlexible? 8 : 5
+    });
+    addRowsOptions(menu, r1, rc);
+    if (columnsAreFlexible) {
+      addColumnsOptions(menu, c1, cc);
+    }
+    addClipboardOptions(menu);
+    attachContextMenu(ev, menu);
+    return menu;
   }
 
   function attachContextMenu(ev, cMenu) {
@@ -761,6 +772,11 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
               refocus();
               return preventDefault(ev);
             }
+          };
+          cell.oncontextmenu = function (ev) {
+            ev = getEvent(ev);
+            cellContextMenu(ev, thisRow, thisColumn).focus();
+            return preventDefault(ev);
           };
         });
       }
@@ -1215,16 +1231,19 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   return {
     /**
      * Re-initialize the table.
-     * @param {string[]} headers Array of strings to become the new column headers
-     * @param {number|string[][]} rows Number of rows the table should now have, or array of
-     * rows, each of which is an array of the cells in that row. Any row longer than
-     * the headers array is truncated.
+     * @param {string[]|number} headers Array of strings to become the new
+     * column headers, or the number of columns to create if column addition
+     * and deletion is required.
+     * @param {number|string[][]} rows Number of rows the table should now
+     * have, or array of rows, each of which is an array of the cells in that row.
+     * Any row longer than the headers array is truncated.
      */
     init: init,
     /**
      * Sets localized text for the row header context table.
      * @param {Object} newText Text of table ids to strings. The ids currently
-     * recognized are `deleteRow`, `addRowBefore` and `addRowAfter`.
+     * recognized are 'cut', 'copy', `deleteRow`, `addRowBefore`, `addRowAfter`,
+     * `deleteColumn`, `addColumnBefore` and `addColumnAfter`.
      */
     setText: function (newText) {
       for (const k in localizedText) {

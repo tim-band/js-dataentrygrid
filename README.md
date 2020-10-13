@@ -74,7 +74,10 @@ Initialize an HTML table to be a data entry grid.
 ### Parameters
 
 -   `containerId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** id of the `table` element you want to make interactive
--   `headers` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** array of strings to become the new column headers
+-   `headers` **([Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)> | [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number))** array of strings to become the new column headers
+    or the number of columns to be created. If a number is given, the columns will be
+    named 'A', 'B', 'C' and so on, and the set of columns will be able to be added and
+    deleted. If an array of strings is given, the columns will be fixed.
 -   `newRowCount` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** number of rows the table should now have
 
 Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** The table object.
@@ -85,7 +88,9 @@ Re-initialize the table.
 
 ### Parameters
 
--   `headers` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** Array of strings to become the new column headers
+-   `headers` **([Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)> | [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number))** Array of strings to become the new
+    column headers, or the number of columns to create if column addition
+    and deletion is required.
 
 ## setText
 
@@ -94,7 +99,8 @@ Sets localized text for the row header context table.
 ### Parameters
 
 -   `newText` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Text of table ids to strings. The ids currently
-    recognized are `deleteRow`, `addRowBefore` and `addRowAfter`.
+    recognized are 'cut', 'copy', `deleteRow`, `addRowBefore`, `addRowAfter`,
+    `deleteColumn`, `addColumnBefore` and `addColumnAfter`.
 
 ## setButtons
 

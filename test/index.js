@@ -266,6 +266,33 @@ describe('dataentrygrid', async function () {
       await repeatKey(driver, 2 + 2 * cc, Key.ARROW_RIGHT, Key.SHIFT);
       await checkSelection(driver, 1, rc-1, 1, cc-1, 'second squeeze');
     });
+
+    describe('returns to the column set', function() {
+      afterEach(async function() {
+        await sendKeys(driver, Key.RETURN);
+        const sel = await getSelection(driver);
+        assert.deepStrictEqual(sel, {
+          anchorRow: 1,
+          anchorColumn: 1,
+          selectionRow: 1,
+          selectionColumn: 1
+        });
+
+        it('with click', async function() {
+          await clickCell(driver, 0, 1);
+        });
+
+        it('with cursor keys', async function() {
+          await clickCell(driver, 0, 0);
+          await sendKeys(driver, Key.ARROW_RIGHT);
+        });
+
+        it('after tabs', async function() {
+          await clickCell(driver, 0, 1);
+          await sendKeys(driver, Key.TAB, Key.TAB);
+        });
+      });
+    });
   });
 
   describe('cell content text', function() {
@@ -401,39 +428,76 @@ describe('dataentrygrid', async function () {
         }
     });
 
-    it('can be copied to the clipboard', async function() {
+    describe('can be copied to the clipboard', function() {
       const rows = [['23.4', '43.1'], ['0.123', '55']];
-      await putCells(driver, 0, 2, 0, 2, rows);
-      await clickCell(driver, 0, 0);
-      await sendKeys(driver, Key.SHIFT, Key.RIGHT, Key.DOWN);
-      await sendKeys(driver, Key.CONTROL, 'c');
-      const copied = clipboardy.readSync();
-      const expected = cellsToText(rows);
-      assert.strictEqual(copied, expected, 'clipboard text did not match entered text after copy');
+
+      beforeEach(async function() {
+        await putCells(driver, 0, 2, 0, 2, rows);
+      });
+
+      it('with keys', async function() {
+        await clickCell(driver, 0, 0);
+        await sendKeys(driver, Key.SHIFT, Key.RIGHT, Key.DOWN);
+        await sendKeys(driver, Key.CONTROL, 'c');
+      });
+
+      it('with the mouse', async function() {
+        await mouseDragCells(driver, [[0,0],[1,1]]);
+        await cellMenuSelect(driver, 0, 1, 'copy');
+      });
+
+      afterEach(async function() {
+        const copied = clipboardy.readSync();
+        const expected = cellsToText(rows);
+        assert.strictEqual(copied, expected, 'clipboard text did not match entered text after copy');
+      });
     });
 
-    it('can be cut', async function() {
+    describe('can be cut', function() {
       const rows = [['5.6', '12.8'], ['23', '99.01']];
-      await putCells(driver, 0, 2, 0, 2, rows);
-      await clickCell(driver, 0, 0);
-      await sendKeys(driver, Key.SHIFT, Key.RIGHT, Key.DOWN);
-      await sendKeys(driver, Key.CONTROL, 'x');
-      const copied = clipboardy.readSync();
-      const expected = cellsToText(rows);
-      assert.strictEqual(copied, expected, 'clipboard text did not match entered text after cut');
-      await assertCellContents(driver, 0, 0, '');
-      await assertCellContents(driver, 0, 1, '');
-      await assertCellContents(driver, 1, 0, '');
-      await assertCellContents(driver, 1, 1, '');
+
+      beforeEach(async function() {
+        await putCells(driver, 0, 2, 0, 2, rows);
+      });
+
+      it('with keys', async function() {
+        await clickCell(driver, 0, 0);
+        await sendKeys(driver, Key.SHIFT, Key.RIGHT, Key.DOWN);
+        await sendKeys(driver, Key.CONTROL, 'x');
+      });
+
+      it('with the mouse', async function() {
+        await mouseDragCells(driver, [[1,1],[0,0]]);
+        await cellMenuSelect(driver, 1, 0, 'cut');
+      });
+
+      afterEach(async function() {
+        const copied = clipboardy.readSync();
+        const expected = cellsToText(rows);
+        assert.strictEqual(copied, expected, 'clipboard text did not match entered text after cut');
+        await assertCellContents(driver, 0, 0, '');
+        await assertCellContents(driver, 0, 1, '');
+        await assertCellContents(driver, 1, 0, '');
+        await assertCellContents(driver, 1, 1, '');
+      });
     });
 
-    it('can be pasted', async function() {
+    describe('can be pasted', async function() {
       const rows = [['6', '48.3'], ['30', '12.1']];
-      clipboardy.writeSync(cellsToText(rows));
-      await clickCell(driver, 0, 0);
-      await sendKeys(driver, Key.CONTROL, 'v');
-      const actual = await getCells(driver, 0, 2, 0, 2);
-      assert.deepStrictEqual(actual, rows, 'cell text did not match pasted text');
+
+      beforeEach(async function() {
+        clipboardy.writeSync(cellsToText(rows));
+      });
+
+      it('with keys', async function() {
+        await clickCell(driver, 0, 0);
+        await sendKeys(driver, Key.CONTROL, 'v');
+      });
+
+      afterEach(async function() {
+        const actual = await getCells(driver, 0, 2, 0, 2);
+        assert.deepStrictEqual(actual, rows, 'cell text did not match pasted text');
+      });
     });
 
     it('can be restored with undo and redo', async function() {
@@ -961,6 +1025,11 @@ async function rowHeaderMenuSelect(driver, row, option) {
   await contextMenuSelect(driver, option);
 }
 
+async function cellMenuSelect(driver, row, column, option) {
+  await cellRightClick(driver, row, column);
+  await contextMenuSelect(driver, option);
+}
+
 async function contextMenuSelect(driver, option) {
   const optionElement = await driver.findElement(
     contextMenuLocator(option));
@@ -997,6 +1066,11 @@ async function rowHeaderClick(driver, row) {
 async function rowHeaderRightClick(driver, row) {
   const rowHeader = await rowHeaderElement(driver, row);
   await driver.actions({ bridge: true }).contextClick(rowHeader).perform();
+}
+
+async function cellRightClick(driver, row, column) {
+  const cell = await getCell(driver, row, column);
+  await driver.actions({ bridge: true }).contextClick(cell).perform();
 }
 
 async function rowHeaderElement(driver, row) {
