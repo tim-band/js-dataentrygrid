@@ -671,6 +671,12 @@ describe('dataentrygrid', async function () {
       await doGet();
     });
 
+    it('can be added in bulk', async function() {
+      const totalRows = 6;
+      await extendRows(driver, totalRows);
+      assert.strictEqual(await getRowCount(driver), totalRows);
+    });
+
     it('can be added', async function() {
       const rc = await getRowCount(driver);
       const contents = '32.1';
@@ -1174,6 +1180,11 @@ async function init(driver, headers, rows) {
   return await driver.executeScript(
       'window.dataEntryGrid.init(arguments[0], arguments[1]);',
       headers, rows);
+}
+
+async function extendRows(driver, rows) {
+  return await driver.executeScript(
+    'window.dataEntryGrid.extendRows(arguments[0]);', rows);
 }
 
 async function setText(driver, textObject) {

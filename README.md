@@ -25,13 +25,12 @@ At the moment, just an HTML proof-of-concept with the following features:
 -   Useful API
 -   Provide undo and redo buttons
 -   Row/Column/Table header click to select
+-   Unfixed headers (so columns can be added and deleted, headers
+    are A,B,C...)
 
 but lacking:
 
--   Unfixed headers (so columns can be added and deleted, headers
-    are A,B,C...)
--   'Cut' and 'Copy' sometimes grayed out on Chrome's context menu,
-    because nothing is selected.
+-   Accessibility testing
 -   Touch screen support?
 
 # API
@@ -44,25 +43,27 @@ but lacking:
     -   [Parameters](#parameters)
 -   [init](#init)
     -   [Parameters](#parameters-1)
--   [setText](#settext)
+-   [extendRows](#extendrows)
     -   [Parameters](#parameters-2)
--   [setButtons](#setbuttons)
+-   [setText](#settext)
     -   [Parameters](#parameters-3)
+-   [setButtons](#setbuttons)
+    -   [Parameters](#parameters-4)
 -   [getSelection](#getselection)
 -   [setSelection](#setselection)
-    -   [Parameters](#parameters-4)
+    -   [Parameters](#parameters-5)
 -   [rowCount](#rowcount)
 -   [columnCount](#columncount)
 -   [getColumnHeaders](#getcolumnheaders)
 -   [goToCell](#gotocell)
-    -   [Parameters](#parameters-5)
--   [getCells](#getcells)
     -   [Parameters](#parameters-6)
--   [putCells](#putcells)
+-   [getCells](#getcells)
     -   [Parameters](#parameters-7)
+-   [putCells](#putcells)
+    -   [Parameters](#parameters-8)
 -   [clearData](#cleardata)
 -   [getColumn](#getcolumn)
-    -   [Parameters](#parameters-8)
+    -   [Parameters](#parameters-9)
 -   [clearUndo](#clearundo)
 -   [undo](#undo)
 -   [redo](#redo)
@@ -84,13 +85,23 @@ Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/G
 
 ## init
 
-Re-initialize the table.
+Re-initializes the table.
 
 ### Parameters
 
 -   `headers` **([Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)> | [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number))** Array of strings to become the new
     column headers, or the number of columns to create if column addition
     and deletion is required.
+
+## extendRows
+
+Adds empty rows to the bottom of the table if necessary.
+
+### Parameters
+
+-   `rows` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The total number of rows the table should
+    have after the call. If the table already had this many no more will
+    be added and none will be taken away.
 
 ## setText
 

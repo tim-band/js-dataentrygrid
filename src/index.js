@@ -1230,7 +1230,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   refocus();
   return {
     /**
-     * Re-initialize the table.
+     * Re-initializes the table.
      * @param {string[]|number} headers Array of strings to become the new
      * column headers, or the number of columns to create if column addition
      * and deletion is required.
@@ -1239,6 +1239,18 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * Any row longer than the headers array is truncated.
      */
     init: init,
+    /**
+     * Adds empty rows to the bottom of the table if necessary.
+     * @param {number} rows The total number of rows the table should
+     * have after the call. If the table already had this many no more will
+     * be added and none will be taken away.
+     */
+    extendRows: function(rows) {
+      const nr = rows - rowCount;
+      if (0 < nr) {
+        insertRows(rowCount, nr);
+      }
+    },
     /**
      * Sets localized text for the row header context table.
      * @param {Object} newText Text of table ids to strings. The ids currently
