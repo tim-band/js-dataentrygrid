@@ -180,10 +180,10 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     refocus();
   }
 
-  function removeContextMenu(cMenu) {
-    if (cMenu.parentNode) {
+  function removeContextMenu(menu) {
+    if (menu.parentNode) {
       try {
-        cMenu.parentNode.removeChild(cMenu);
+        menu.parentNode.removeChild(menu);
       } catch(e) {
       }
     }
@@ -191,15 +191,16 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     refocus();
   }
 
+  // get mouse co-ordinates relative to the table's nearest non-static ancestor
   function getMouseCoordinates(ev) {
-    // polyfill
-    if (ev.pageX || ev.pageY) {
-      return { x: ev.pageX, y: ev.pageY };
+    for(let e = table; e; e = e.parentElement) {
+      const s = window.getComputedStyle(e).getPropertyValue('position');
+      if (s !== 'static') {
+        const r = e.getBoundingClientRect(e);
+        return { x: ev.clientX - r.left, y: ev.clientY - r.top };
+      }
     }
-    return {
-      x: ev.clientX + document.body.scrollLeft + document.documentElement.scrollLeft,
-      y: ev.clientY + document.body.scrollTop + document.documentElement.scrollTop
-    }
+    return { x: ev.clientX, y: ev.clientY };
   }
 
   function preventDefault(ev) {
@@ -581,6 +582,13 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     }, localizedText.copy);
   }
 
+  function emptyContextMenu(size) {
+    return createElement('SELECT', {
+      id: table.getAttribute('id').concat('-context-menu'),
+      size: size
+    });
+  }
+
   function rowHeaderMenu(ev, r) {
     let r1 = Math.min(anchorRow, selectionRow);
     let rc = Math.abs(selectionRow - anchorRow) + 1;
@@ -589,8 +597,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       rc = 1;
       setSelection(r, 0, r, columnCount - 1);
     }
-    const id = table.getAttribute('id').concat('-context-menu');
-    const menu = createElement('SELECT', { id: id, size: 5 });
+    const menu = emptyContextMenu(5);
     addRowsOptions(menu, r1, rc);
     addClipboardOptions(menu);
     attachContextMenu(ev, menu);
@@ -598,11 +605,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   }
 
   function columnHeaderMenu(ev, c) {
-    const id = table.getAttribute('id').concat('-context-menu');
-    const menu = createElement('SELECT', {
-      id: id,
-      size: columnsAreFlexible? 5 : 2
-    });
+    const menu = emptyContextMenu(columnsAreFlexible? 5 : 2);
     if (columnsAreFlexible) {
       let c1 = Math.min(anchorColumn, selectionColumn);
       let cc = Math.abs(selectionColumn - anchorColumn) + 1;
@@ -630,11 +633,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       cc = 1;
       setSelection(r, c, r, c);
     }
-    const id = table.getAttribute('id').concat('-context-menu');
-    const menu = createElement('SELECT', {
-      id: id,
-      size: columnsAreFlexible? 8 : 5
-    });
+    const menu = emptyContextMenu(columnsAreFlexible? 8 : 5);
     addRowsOptions(menu, r1, rc);
     if (columnsAreFlexible) {
       addColumnsOptions(menu, c1, cc);
@@ -644,20 +643,28 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return menu;
   }
 
-  function attachContextMenu(ev, cMenu) {
+  function tableHeaderMenu(ev) {
+    const menu = emptyContextMenu(2);
+    addClipboardOptions(menu);
+    attachContextMenu(ev, menu);
+    return menu;
+  }
+
+  function attachContextMenu(ev, menu) {
     const mousePosition = getMouseCoordinates(ev);
-    cMenu.style.position = 'absolute';
-    cMenu.style.left = mousePosition.x + 'px';
-    cMenu.style.top = mousePosition.y + 'px';
-    cMenu.tabIndex = -1;
-    cMenu.zIndex = 10;
-    cMenu.onblur = function () { removeContextMenu(cMenu); };
-    cMenu.contentEditable = false;
+    menu.style.position = 'absolute';
+    menu.style.left = mousePosition.x + 'px';
+    menu.style.top = mousePosition.y + 'px';
+    menu.tabIndex = -1;
+    menu.zIndex = 10;
+    menu.onblur = function () { removeContextMenu(menu); };
+    menu.contentEditable = false;
     if (contextMenu) {
       removeContextMenu(contextMenu);
     }
-    contextMenu = cMenu;
-    table.appendChild(cMenu);
+    contextMenu = menu;
+    table.appendChild(menu);
+    menu.focus();
   }
 
   function forEachRow(rowStart, rowEnd, callback) {
@@ -694,6 +701,11 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         setSelection(0, 0, rowCount - 1, columnCount - 1);
         refocus();
       };
+      h.oncontextmenu = function(ev) {
+        ev = getEvent(ev);
+        tableHeaderMenu(ev).focus();
+        return preventDefault(ev);
+      };
     }
     for (let i = 1; i < chr.length; ++i) {
       const thisColumn = i - 1;
@@ -721,7 +733,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         ev = getEvent(ev);
         columnHeaderMenu(ev, thisColumn).focus();
         return preventDefault(ev);
-    };
+      };
     }
     forEachRow(firstRow, rowCount, function (row, i, thisRow) {
       const rowHeaders = row.getElementsByTagName('TH');
