@@ -18,6 +18,10 @@ table.data-entry-grid th, table.data-entry-grid td {
   padding-bottom: 0px;
 }
 
+table.data-entry-grid tr.subheader {
+  display: none;
+}
+
 table.data-entry-grid input {
   border: 0;
 }

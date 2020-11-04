@@ -582,7 +582,7 @@ describe('dataentrygrid', async function () {
 
     it('can be set via the API', async function() {
       const newRows = 5;
-      const newHeaders = ['proton', 'neutral', 'electron', 'positron'];
+      const newHeaders = ['proton', 'neutron', 'electron', 'positron'];
       await init(driver, newHeaders, newRows);
       const rc = await getRowCount(driver);
       assert.strictEqual(rc, newRows);
@@ -594,7 +594,7 @@ describe('dataentrygrid', async function () {
       const rs = await driver.findElements(By.css('table#input tbody tr'));
       assert.strictEqual(rs.length, newRows,
         'did not initialize with the correct number of rows');
-      const ths = await driver.findElements(By.css('table#input thead th'));
+      const ths = await driver.findElements(By.css('table#input thead tr.header th'));
       assert.strictEqual(ths.length, newHeaders.length + 1,
         'did not initialize with the correct number of column headers');
       for (let i = 0; i != rc; ++i) {
@@ -632,13 +632,15 @@ describe('dataentrygrid', async function () {
     });
 
     it('do not permit column addition or deletion if inflexible', async function() {
-      [
+      await asyncForEach([
         {headers: ['in', 'flexy', 'ball'], expectedElements: 0},
         {headers: 3, expectedElements: 1}
-      ].forEach(async function({headers, expectedElements}) {
+      ], async function({headers, expectedElements}) {
         await init(driver, headers, 3);
-        await rowHeaderRightClick(driver, row);
-        ['column-delete', 'column-add-before', 'column-add-after'].forEach(async function(option) {
+        await cellRightClick(driver, 1, 1);
+        await asyncForEach([
+          'column-delete', 'column-add-before', 'column-add-after'
+        ], async function(option) {
           const optionElements = await driver.findElements(
             contextMenuLocator(option));
           assert.strictEqual(optionElements.length, expectedElements);
@@ -648,20 +650,30 @@ describe('dataentrygrid', async function () {
 
     it('keep the same when columns deleted', async function() {
       await init(driver, 5, 3);
+      await setSubheader(driver, 1, 'sam');
+      await setSubheader(driver, 2, 'merry');
+      await setSubheader(driver, 3, 'pippin');
+      await setSubheader(driver, 4, 'frodo');
       await dragColumnHeaders(driver, 2, 3);
       await columnHeaderRightClick(driver, 3);
       await contextMenuSelect(driver, 'column-delete');
       const headers = await getColumnHeaders(driver);
       assert.deepStrictEqual(headers, ['A', 'B', 'C']);
+      const sh = await getSubheaders(driver);
+      assert.deepStrictEqual(sh, ['', 'sam', 'frodo']);
     });
 
     it('are correct when columns are added in the middle', async function() {
       await init(driver, 5, 3);
+      await setSubheader(driver, 1, 'alpha');
+      await setSubheader(driver, 2, 'beta');
       await dragColumnHeaders(driver, 2, 3);
       await columnHeaderRightClick(driver, 3);
       await contextMenuSelect(driver, 'column-add-before');
       const headers = await getColumnHeaders(driver);
       assert.deepStrictEqual(headers, ['A', 'B', 'C', 'D', 'E', 'F', 'G']);
+      const sh = await getSubheaders(driver);
+      assert.deepStrictEqual(sh, ['', 'alpha', '', '', 'beta', '', '']);
     });
   });
 
@@ -955,6 +967,12 @@ describe('dataentrygrid', async function () {
   });
 });
 
+async function asyncForEach(arr, fn) {
+  for (let i = 0; i != arr.length; ++i) {
+    await fn(arr[i]);
+  }
+}
+
 async function dragColumnHeaders(driver, startColumn, endColumn) {
   const startHeader = await columnHeaderElement(driver, startColumn);
   const endHeader = await columnHeaderElement(driver, endColumn);
@@ -964,7 +982,7 @@ async function dragColumnHeaders(driver, startColumn, endColumn) {
 }
 
 async function readHeaders(driver) {
-  const ths = await driver.findElements(By.css('table#input thead th'));
+  const ths = await driver.findElements(By.css('table#input thead tr.header th'));
   let actualHeaders = [];
   for (let i = 1; i < ths.length; ++i) {
     const e = await ths[i].getText();
@@ -1118,10 +1136,6 @@ function repeat(times, x) {
   return Array(times).fill(x);
 }
 
-function getTable(driver) {
-  return driver.findElement(By.id('input'));
-}
-
 async function focus(driver) {
   return await driver.switchTo().activeElement();
 }
@@ -1239,6 +1253,21 @@ async function putCells(driver, startRow, endRow, startColumn, endColumn, rows) 
 
 async function clearData(driver) {
   await driver.executeScript('window.dataEntryGrid.clearData()');
+}
+
+async function getSubheaders(driver) {
+  return await driver.executeScript(
+    'var deg = window.dataEntryGrid;' +
+    'var cc = deg.columnCount();' +
+    'var h = [], i;' +
+    'for (i = 0; i != cc; ++i) {' +
+    'h.push(deg.getColumnSubheader(i).textContent);' +
+    '} return h;');
+}
+
+async function setSubheader(driver, column, text) {
+  await driver.executeScript(
+    `window.dataEntryGrid.getColumnSubheader(${column}).textContent = '${text}';`);
 }
 
 async function getColumnHeaders(driver) {

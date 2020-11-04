@@ -57,7 +57,11 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     if (thead.length === 0) {
       return [];
     }
-    return thead[0].getElementsByTagName('TH');
+    const tr = thead[0].getElementsByTagName('TR');
+    if (tr.length === 0) {
+      return [];
+    }
+    return tr[0].getElementsByTagName('TH');
   }
 
   function getColumnHeaders() {
@@ -130,6 +134,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       rows = data.length;
     }
     const thead = createElementArray('THEAD', 'TR', 1, function (tr) {
+      tr.setAttribute('class', 'header');
       createElementArray(tr, 'TH', 1, function(th) {
         const div = createElement('DIV', {
           style: 'width:0;height:0;overflow:hidden;position:fixed'
@@ -143,6 +148,11 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         e.textContent = x;
         e.onclick = refocus;
       });
+    });
+    createElementArray(thead, 'TR', 1, function(tr) {
+      tr.setAttribute('class', 'subheader');
+      createElementArray(tr, 'TH', 1);
+      createElementArray(tr, 'TD', headers.length);
     });
     const tbody = createElementArray('TBODY', 'TR', rows, function (tr, i) {
       const rowData = data[i];
@@ -360,15 +370,21 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   function insertColumns(c, count) {
     undo.undoable(commitEdit());
     const hrow = getHeaderTr();
+    const shrow = getSubheaderTr();
     let thFn;
+    let thFnS;
     if (c < columnCount) {
       const b = hrow.childNodes[c + 1];
+      const bs = shrow.childNodes[c + 1];
       thFn = function(child) { hrow.insertBefore(child, b); };
+      thFnS = function(child) { shrow.insertBefore(child, bs); };
     } else {
       thFn = function (child) { hrow.appendChild(child); };
+      thFnS = function (child) { shrow.appendChild(child); };
     }
     for (let i = 0; i < count; ++i) {
       thFn(document.createElement('TH'));
+      thFnS(document.createElement('TD'));
     }
     for (let r = 0; r !== rowCount; ++r) {
       const row = getRow(r);
@@ -413,8 +429,10 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     undo.undoable(commitEdit());
     const values = getCells(0, rowCount, c, c + count);
     const hrow = getHeaderTr();
+    const shrow = getSubheaderTr();
     for (let i = 0; i !== count; ++i) {
       hrow.removeChild(hrow.childNodes[c + 1]);
+      shrow.removeChild(shrow.childNodes[c + 1]);
     }
     for (let r = 0; r !== rowCount; ++r) {
       const row = getRow(r);
@@ -463,6 +481,11 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   function getHeaderTr() {
     const thead = table.getElementsByTagName('THEAD')[0];
     return thead.getElementsByTagName('TR')[0];
+  }
+
+  function getSubheaderTr() {
+    const thead = table.getElementsByTagName('THEAD')[0];
+    return thead.getElementsByTagName('TR')[1];
   }
 
   function markSelectedColumns(row) {
@@ -1331,6 +1354,29 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @returns {string[]} array of strings.
      */
     getColumnHeaders: getColumnHeaders,
+    /** 
+     * Returns the subheader TD cell of the specified column,
+     * or the subheader TH cell if -1 is requested.
+     * 
+     * There is a second TR row in the THEAD of the table.
+     * It has the class 'subheader' and is filled with one
+     * TH cell and a number of TD cells, one per column.
+     * The easiest thing to do with it is to use a stylesheet
+     * rule to make it invisible, but it can be used for any
+     * other use the user desires; dataEntryGrid will not
+     * molest this row except to delete and add TDs if
+     * columns are deleted and added.
+     * 
+     * @param {number} column which column's subheader
+     * to return, or -1 to return the TH element.
+     * @returns {element} the TD or TH element
+     */
+    getColumnSubheader: function(column) {
+      if (column < -1 || columnCount <= column) {
+        return null;
+      }
+      return getSubheaderTr().children[column + 1]
+    },
     /**
      * Moves the anchor (and selection to the same place)
      * @param {number} r row to go to

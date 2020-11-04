@@ -4,7 +4,7 @@ Featherweight Excel-like grid for data entry
 
 Build with `npm install .` then `npm run build`.
 
-At the moment, just an HTML proof-of-concept with the following features:
+Has the following features:
 
 -   Click to edit
 -   Navigate with Tab and Return
@@ -55,15 +55,17 @@ but lacking:
 -   [rowCount](#rowcount)
 -   [columnCount](#columncount)
 -   [getColumnHeaders](#getcolumnheaders)
--   [goToCell](#gotocell)
+-   [getColumnSubheader](#getcolumnsubheader)
     -   [Parameters](#parameters-6)
--   [getCells](#getcells)
+-   [goToCell](#gotocell)
     -   [Parameters](#parameters-7)
--   [putCells](#putcells)
+-   [getCells](#getcells)
     -   [Parameters](#parameters-8)
+-   [putCells](#putcells)
+    -   [Parameters](#parameters-9)
 -   [clearData](#cleardata)
 -   [getColumn](#getcolumn)
-    -   [Parameters](#parameters-9)
+    -   [Parameters](#parameters-10)
 -   [clearUndo](#clearundo)
 -   [undo](#undo)
 -   [redo](#redo)
@@ -164,6 +166,27 @@ Returns **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/G
 Returns the column headers.
 
 Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** array of strings.
+
+## getColumnSubheader
+
+Returns the subheader TD cell of the specified column,
+or the subheader TH cell if -1 is requested.
+
+There is a second TR row in the THEAD of the table.
+It has the class 'subheader' and is filled with one
+TH cell and a number of TD cells, one per column.
+The easiest thing to do with it is to use a stylesheet
+rule to make it invisible, but it can be used for any
+other use the user desires; dataEntryGrid will not
+molest this row except to delete and add TDs if
+columns are deleted and added.
+
+### Parameters
+
+-   `column` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** which column's subheader
+    to return, or -1 to return the TH element.
+
+Returns **[element](https://developer.mozilla.org/docs/Web/API/Element)** the TD or TH element
 
 ## goToCell
 
