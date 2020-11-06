@@ -739,6 +739,17 @@ describe('dataentrygrid', async function () {
       await assertCellContents(driver, rc - 1, 0, firstContents);
       await assertCellContents(driver, rc, 0, secondContents);
     });
+
+    it('the last one cannot be deleted', async function() {
+      const values = [[7.7, 6.6, 5.5], [9.9, 8.8, 1.1]];
+      const headers = ['alpha', 'beta', 'gamma'];
+      await init(driver, headers, values);
+      await mouseDragCells(driver, [[0,0], [1,2]]);
+      await rowHeaderRightClick(driver, 0);
+      const option = await driver.findElement(By.css('option[value="delete"]'));
+      const disabled = await option.getAttribute('disabled');
+      assert(disabled, 'row delete option should be disabled');
+    });
   });
 
   describe('flexible columns', function() {
@@ -790,6 +801,16 @@ describe('dataentrygrid', async function () {
         'row count (from API) does not decrease by 2 when deleting two columns');
       await assertCellContents(driver, 0, 0, data[0][2]);
       await assertCellContents(driver, 0, 1, data[0][4]);
+    });
+
+    it('the last one cannot be deleted', async function() {
+      const values = [[11, 77], [88, 44], [33,66]];
+      await init(driver, 2, values);
+      await mouseDragCells(driver, [[0,0], [2,1]]);
+      await columnHeaderRightClick(driver, 0);
+      const option = await driver.findElement(By.css('option[value="column-delete"]'));
+      const disabled = await option.getAttribute('disabled');
+      assert(disabled, 'column delete option should be disabled');
     });
   });
 

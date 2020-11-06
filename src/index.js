@@ -546,8 +546,12 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     doGoToCell(r, c);
   }
 
-  function addOption(menu, id, callback, text) {
-    const e = createElement('OPTION', { value: id });
+  function addOption(menu, id, callback, text, disabled) {
+    const attrs = { value: id };
+    if (disabled) {
+      attrs.disabled = true;
+    }
+    const e = createElement('OPTION', attrs);
     e.textContent = text;
     e.onclick = callback;
     menu.appendChild(e);
@@ -557,7 +561,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     addOption(menu, 'delete', function() {
       undo.undoable(deleteRows(firstRow, count));
       removeContextMenu(menu);
-    }, localizedText.deleteRow);
+    }, localizedText.deleteRow, count === rowCount);
     addOption(menu, 'add-before', function() {
       undo.undoable(insertRows(firstRow, count));
       removeContextMenu(menu);
@@ -572,7 +576,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     addOption(menu, 'column-delete', function() {
       undo.undoable(deleteColumns(firstColumn, count));
       removeContextMenu(menu);
-    }, localizedText.deleteColumn);
+    }, localizedText.deleteColumn, count === columnCount);
     addOption(menu, 'column-add-before', function() {
       undo.undoable(insertColumns(firstColumn, count));
       removeContextMenu(menu);
