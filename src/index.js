@@ -20,6 +20,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   var inputBox = null;
   var contextMenu = null;
   var hiddenTextarea = null;
+  var selecting = false;
   var localizedText = {
     cut: 'Cut',
     copy: 'Copy',
@@ -34,7 +35,14 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   const undo = undoSystem();
   function noop() { return null; }
   var commitEdit = noop;
-  var table = document.getElementById(containerId); // while we aren't creating our own table
+  const table = containerId?
+    document.getElementById(containerId)
+    : document.createElement('TABLE');
+
+  if (!table) {
+    console.error(`no such table #${containerId}`);
+    return null;
+  }
 
   function getRow(r) {
     return getTbody().getElementsByTagName('TR')[r];
@@ -743,13 +751,13 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
           undo.undoable(commitEdit());
           setSelection(0, c, rowCount - 1, c);
           refocus();
-          return preventDefault(ev);
+          ev.preventDefault();
         }
       };
       h.onmouseenter = function(ev) {
         ev = getEvent(ev);
         // stretch selection over this row
-        if (ev.buttons & 1) {
+        if (selecting && (ev.buttons & 1)) {
           setSelection(anchorRow, anchorColumn,
             anchorRow === 0? rowCount - 1 : 0, thisColumn);
           refocus();
@@ -777,7 +785,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         rh.onmouseenter = function (ev) {
           ev = getEvent(ev);
           // stretch selection over this row
-          if (ev.buttons & 1) {
+          if (selecting && (ev.buttons & 1)) {
             setSelection(anchorRow, anchorColumn, thisRow,
               anchorColumn === 0? columnCount - 1 : 0);
             refocus();
@@ -796,7 +804,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
           cell.onmouseenter = function (ev) {
             ev = getEvent(ev);
             // stretch selection over this cell
-            if (ev.buttons & 1) {
+            if (selecting && (ev.buttons & 1)) {
               setSelection(anchorRow, anchorColumn, thisRow, thisColumn);
               refocus();
               return preventDefault(ev);
@@ -809,7 +817,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
               undo.undoable(commitEdit());
               setSelection(thisRow, thisColumn, thisRow, thisColumn);
               refocus();
-              return preventDefault(ev);
+              ev.preventDefault();
             }
           };
           cell.oncontextmenu = function (ev) {
@@ -1253,17 +1261,21 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   table.onpaste = tablePasteHandler;
   table.onmousemove = function (ev) {
     ev = getEvent(ev);
-    // prevent default drag-select
+    // prevent default drag-select (but not all propagation)
     if (ev.buttons & 1) {
-      return preventDefault(ev);
+      ev.preventDefault();
     }
   };
   table.onmousedown = function (ev) {
     ev = getEvent(ev);
-    // prevent default drag-select
+    // prevent default drag-select (but not all propagation)
     if (ev.button === 0) {
-      return preventDefault(ev);
+      selecting = true;
+      ev.preventDefault();
     }
+  };
+  table.onmouseup = function (ev) {
+    selecting = false;
   };
   init(headers, newRowCount);
   refocus();
@@ -1452,6 +1464,11 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * table changes (excluding the subheader cells).
      * @param {nullary} watcher The new watcher to add.
      */
-    addWatcher: (watcher) => undo.addWatcher(watcher)
+    addWatcher: (watcher) => undo.addWatcher(watcher),
+    /**
+     * Returns the table element.
+     * @return {HTMLTableElement}
+     */
+    getTable: () => table
   };
 };

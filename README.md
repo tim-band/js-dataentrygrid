@@ -72,6 +72,7 @@ but lacking:
 -   [nullary](#nullary)
 -   [addWatcher](#addwatcher)
     -   [Parameters](#parameters-11)
+-   [getTable](#gettable)
 
 ## createDataEntryGrid
 
@@ -266,3 +267,9 @@ table changes (excluding the subheader cells).
 ### Parameters
 
 -   `watcher` **[nullary](#nullary)** The new watcher to add.
+
+## getTable
+
+Returns the table element.
+
+Returns **[HTMLTableElement](https://developer.mozilla.org/docs/Web/API/HTMLTableElement)** 
