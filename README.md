@@ -69,6 +69,9 @@ but lacking:
 -   [clearUndo](#clearundo)
 -   [undo](#undo)
 -   [redo](#redo)
+-   [nullary](#nullary)
+-   [addWatcher](#addwatcher)
+    -   [Parameters](#parameters-11)
 
 ## createDataEntryGrid
 
@@ -248,3 +251,18 @@ Undoes the last action done or redone.
 ## redo
 
 Redoes the last undone action.
+
+## nullary
+
+Nullary function as a callback
+
+Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)
+
+## addWatcher
+
+Adds a watcher function that is called every time the content of the
+table changes (excluding the subheader cells).
+
+### Parameters
+
+-   `watcher` **[nullary](#nullary)** The new watcher to add.

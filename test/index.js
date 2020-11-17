@@ -986,6 +986,34 @@ describe('dataentrygrid', async function () {
         `top edge is ${cr.top}, not roughly ${frameRect.top}`);
       });
   });
+
+  describe('watcher', function() {
+    beforeEach(async function () {
+      await doGet();
+    });
+
+    it('is called', async function() {
+      await driver.executeScript(
+        'window.watchCount = 0;' +
+        'dataEntryGrid.addWatcher(function(){++window.watchCount;});');
+      async function assertCount(n) {
+        const actual = await driver.executeScript('return window.watchCount;');
+        assert.strictEqual(actual, n, `watcher called ${actual} times not ${n}`);
+      }
+      await clickCell(driver, 0, 2);
+      await assertCount(0);
+      await sendKeys(driver, '456', Key.RETURN);
+      await assertCount(1);
+      await sendKeys(driver, Key.UP, Key.LEFT);
+      await assertCount(1);
+      await sendKeys(driver, Key.CONTROL, 'z');
+      await assertCount(2);
+      await sendKeys(driver, Key.CONTROL, Key.SHIFT, 'z');
+      await assertCount(3);
+      await rowHeaderMenuSelect(driver, 0, 'add-before');
+      await assertCount(4);
+    });
+  });
 });
 
 async function asyncForEach(arr, fn) {

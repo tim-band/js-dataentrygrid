@@ -4,6 +4,13 @@ function undoSystem() {
   let redoStack = [];
   let undoButton = null;
   let redoButton = null;
+  let watchers = [];
+
+  function callWatchers() {
+    for (let i = 0; i != watchers.length; ++i) {
+      watchers[i]();
+    }
+  }
 
   // undoable(myAction()) pushes the inverse action onto the undo stack.
   // returns true if the action wasn't null
@@ -19,6 +26,7 @@ function undoSystem() {
     }
     undoStack.push(action);
     redoStack = [];
+    callWatchers();
     return true;
   }
 
@@ -33,6 +41,7 @@ function undoSystem() {
           undoButton.removeAttribute('disabled');
         }
         undoStack.push(action);
+        callWatchers();
       }
     }
   }
@@ -48,6 +57,7 @@ function undoSystem() {
           redoButton.removeAttribute('disabled');
         }
         redoStack.push(action);
+        callWatchers();
       }
     }
   }
@@ -61,6 +71,10 @@ function undoSystem() {
     }
     redoStack = [];
     undoStack = [];
+    // although clearing the undo stack is not in itself a change
+    // of state, it is usually done just after the table undergoes
+    // a big change (that would invalidate the undo stack)
+    callWatchers();
   }
 
   function setButtons(anUndoButton, aRedoButton, afterFn) {
@@ -88,11 +102,16 @@ function undoSystem() {
     }
   }
 
+  function addWatcher(f) {
+    watchers.push(f);
+  }
+
   return {
     undoable,
     setButtons,
     clearUndo,
     undo,
-    redo
+    redo,
+    addWatcher
   };
 };

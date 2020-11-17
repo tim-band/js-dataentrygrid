@@ -1441,6 +1441,17 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     /**
      * Redoes the last undone action.
      */
-    redo: () => doRedo()
+    redo: () => doRedo(),
+    /**
+     * Nullary function as a callback
+     * 
+     * @callback nullary
+     */
+    /**
+     * Adds a watcher function that is called every time the content of the
+     * table changes (excluding the subheader cells).
+     * @param {nullary} watcher The new watcher to add.
+     */
+    addWatcher: (watcher) => undo.addWatcher(watcher)
   };
 };
