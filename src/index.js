@@ -758,8 +758,9 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         ev = getEvent(ev);
         // stretch selection over this row
         if (selecting && (ev.buttons & 1)) {
-          setSelection(anchorRow, anchorColumn,
-            anchorRow === 0? rowCount - 1 : 0, thisColumn);
+          const r = anchorRow === 0 ? rowCount - 1 : 0;
+          setSelection(anchorRow, anchorColumn, r, thisColumn);
+          scrollToCell(r, thisColumn, anchorRow, anchorColumn);
           refocus();
           return preventDefault(ev);
         }
@@ -786,8 +787,9 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
           ev = getEvent(ev);
           // stretch selection over this row
           if (selecting && (ev.buttons & 1)) {
-            setSelection(anchorRow, anchorColumn, thisRow,
-              anchorColumn === 0? columnCount - 1 : 0);
+            const c = anchorColumn === 0 ? columnCount - 1 : 0;
+            setSelection(anchorRow, anchorColumn, thisRow, c);
+            scrollToCell(thisRow, c, anchorRow, anchorColumn);
             refocus();
             return preventDefault(ev);
           }
@@ -806,6 +808,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
             // stretch selection over this cell
             if (selecting && (ev.buttons & 1)) {
               setSelection(anchorRow, anchorColumn, thisRow, thisColumn);
+              scrollToCell(thisRow, thisColumn, anchorRow, anchorColumn);
               refocus();
               return preventDefault(ev);
             }

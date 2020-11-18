@@ -961,7 +961,6 @@ describe('dataentrygrid', async function () {
     it('is not affected by refocus', async function() {
       const scrollX = 10;
       const scrollY = 200;
-      const frame = await driver.findElement(By.id('deg-frame'));
       await setScroll(driver, frame, scrollX, scrollY);
       await clickCell(driver, 10, 1);
       await clickCell(driver, 11, 2);
@@ -984,7 +983,20 @@ describe('dataentrygrid', async function () {
         `right edge is ${cr.right}, not roughly ${frameRect.right}`);
       assert(frameRect.top - 5 < cr.top && frameRect.top + 5,
         `top edge is ${cr.top}, not roughly ${frameRect.top}`);
-      });
+    });
+
+    it('scrolls to follow mouse drag', async function() {
+      await setScroll(driver, frame, 10, 200);
+      let element = await getCell(driver, 20, 1);
+      await driver.actions({bridge: true}).move({origin: element}).press().perform();
+      for (let i = 19; 0 <= i; --i) {
+        element = await getCell(driver, i, 1);
+        await driver.actions({bridge: true}).move({origin: element}).perform();
+        const r = await getBoundingRect(driver, element);
+        assert(frameRect.top <= r.top, `row ${i} should have been scrolled into view`);
+      }
+      await driver.actions({bridge: true}).release().perform();
+    });
   });
 
   describe('watcher', function() {
