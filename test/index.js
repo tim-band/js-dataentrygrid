@@ -677,6 +677,30 @@ describe('dataentrygrid', async function () {
     });
   });
 
+  describe('subheaders', function() {
+
+    beforeEach(async function () {
+      await doGet();
+      await driver.executeScript(
+        'var e = document.createElement("select");' +
+        'e.setAttribute("id", "subheader-select");' +
+        'var o1 = document.createElement("option");' +
+        'o1.textContent = "alpha";' +
+        'o1.setAttribute("value", "subheader-alpha");' +
+        'var o2 = document.createElement("option");' +
+        'o2.textContent = "beta";' +
+        'o2.setAttribute("value", "subheader-beta");' +
+        'e.append(o1,o2);' +
+        'window.dataEntryGrid.getColumnSubheader(1).appendChild(e);'
+      );
+    });
+
+    it('allow clicks', async function() {
+      await driver.findElement(By.id('subheader-select')).click();
+      await driver.findElement(By.css('option[value="subheader-beta"]')).click();
+    });
+  });
+
   describe('rows', function() {
 
     beforeEach(async function () {

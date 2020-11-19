@@ -781,6 +781,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
           if (ev.button === 0) {
             setSelection(thisRow, 0, thisRow, columnCount - 1);
             refocus();
+            ev.preventDefault();
           }
         };
         rh.onmouseenter = function (ev) {
@@ -1265,7 +1266,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   table.onmousemove = function (ev) {
     ev = getEvent(ev);
     // prevent default drag-select (but not all propagation)
-    if (ev.buttons & 1) {
+    if (selecting && (ev.buttons & 1)) {
       ev.preventDefault();
     }
   };
@@ -1274,7 +1275,6 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     // prevent default drag-select (but not all propagation)
     if (ev.button === 0) {
       selecting = true;
-      ev.preventDefault();
     }
   };
   table.onmouseup = function (ev) {
