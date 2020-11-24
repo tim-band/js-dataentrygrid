@@ -1288,7 +1288,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @param {string[]|number} headers Array of strings to become the new
      * column headers, or the number of columns to create if column addition
      * and deletion is required.
-     * @param {number|string[][]} rows Number of rows the table should now
+     * @param {number|Array.<Array.<string>>} rows Number of rows the table should now
      * have, or array of rows, each of which is an array of the cells in that row.
      * Any row longer than the headers array is truncated.
      */
@@ -1410,7 +1410,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @param {number} [columnStart=0] first column
      * @param {number} [columnEnd] one past the last column, defaults
      * to (one past) the last column
-     * @returns {string[][]} The cell contents
+     * @returns {Array.<Array.<string>>} The cell contents
      */
     getCells: getCells,
     /**
@@ -1419,7 +1419,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @param {number} rowEnd one past the last row
      * @param {number} columnStart first column
      * @param {number} columnEnd one past the last column
-     * @param {string[][]} values an array of arrays of new cell values.
+     * @param {Array.<Array.<string>>} values an array of arrays of new cell values.
      */
     putCells: function (rowStart, rowEnd, columnStart, columnEnd, values) {
       undo.undoable(putCellsAction(rowStart, rowEnd, columnStart, columnEnd, values));
