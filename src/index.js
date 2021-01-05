@@ -44,6 +44,8 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return null;
   }
 
+  table.classList.add('data-entry-grid');
+
   function getRow(r) {
     return getTbody().getElementsByTagName('TR')[r];
   }
@@ -207,18 +209,6 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     }
     contextMenu = null;
     refocus();
-  }
-
-  // get mouse co-ordinates relative to the table's nearest non-static ancestor
-  function getMouseCoordinates(ev) {
-    for(let e = table; e; e = e.parentElement) {
-      const s = window.getComputedStyle(e).getPropertyValue('position');
-      if (s !== 'static') {
-        const r = e.getBoundingClientRect(e);
-        return { x: ev.clientX - r.left, y: ev.clientY - r.top };
-      }
-    }
-    return { x: ev.clientX, y: ev.clientY };
   }
 
   function preventDefault(ev) {
@@ -683,6 +673,21 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     addClipboardOptions(menu);
     attachContextMenu(ev, menu);
     return menu;
+  }
+
+  // get mouse co-ordinates relative to the table's nearest non-static ancestor
+  function getMouseCoordinates(ev) {
+    for(let e = table; e; e = e.parentElement) {
+      const s = window.getComputedStyle(e).getPropertyValue('position');
+      if (s !== 'static') {
+        const r = e.getBoundingClientRect(e);
+        return {
+          x: ev.clientX - r.left + e.scrollLeft,
+          y: ev.clientY - r.top + e.scrollTop
+        };
+      }
+    }
+    return { x: ev.pageX, y: ev.pageY };
   }
 
   function attachContextMenu(ev, menu) {

@@ -1010,6 +1010,7 @@ describe('dataentrygrid', async function () {
     });
 
     it('scrolls to follow mouse drag', async function() {
+      this.timeout(5000);
       await setScroll(driver, frame, 10, 200);
       let element = await getCell(driver, 20, 1);
       await driver.actions({bridge: true}).move({origin: element}).press().perform();
@@ -1020,6 +1021,20 @@ describe('dataentrygrid', async function () {
         assert(frameRect.top <= r.top, `row ${i} should have been scrolled into view`);
       }
       await driver.actions({bridge: true}).release().perform();
+    });
+
+    it('stays scrolled after right-click', async function() {
+      this.timeout(5000);
+      await setScroll(driver, frame, 10, 200);
+      let element1 = await getCell(driver, 19, 1);
+      let element2 = await getCell(driver, 20, 3);
+      await driver.actions({bridge: true})
+        .move({origin: element1}).press()
+        .move({origin: element2}).release()
+        .contextClick(element1)
+        .perform();
+      const r = await getBoundingRect(driver, element2);
+      assert(frameRect.top <= r.top, `row 20 should still be visible`);
     });
   });
 
