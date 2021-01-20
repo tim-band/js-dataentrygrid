@@ -35,9 +35,25 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   const undo = undoSystem();
   function noop() { return null; }
   var commitEdit = noop;
-  const table = containerId?
-    document.getElementById(containerId)
-    : document.createElement('TABLE');
+
+  const table = function() {
+    if (typeof(containerId) === 'string') {
+      const t = document.getElementById(containerId);
+      if (t) {
+        return t;
+      }
+      const n = document.createElement('TABLE');
+      n.id = containerId;
+    }
+    const n = document.createElement('TABLE');
+    for (;;) {
+      const id = 'table-' + Math.floor(Math.random() * 9000 + 1000);
+      if (!document.getElementById(id)) {
+        n.id = id;
+        return n;
+      }
+    }
+  }();
 
   if (!table) {
     console.error(`no such table #${containerId}`);
