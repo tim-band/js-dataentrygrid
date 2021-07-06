@@ -33,9 +33,10 @@
     "url": "https://github.com/tim-band/js-dataentrygrid/issues"
   },
   "homepage": "https://github.com/tim-band/js-dataentrygrid#readme",
-  "dependencies": {},
+  "dependencies": {
+    "@babel/cli": "^7.14.5"
+  },
   "devDependencies": {
-    "@babel/cli": "^7.12.10",
     "@babel/core": "^7.12.10",
     "@babel/generator": "^7.12.11",
     "@babel/preset-env": "^7.12.11",
