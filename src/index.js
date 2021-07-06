@@ -35,6 +35,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   const undo = undoSystem();
   function noop() { return null; }
   var commitEdit = noop;
+  var reunittingFunction = null;
 
   const table = function() {
     if (typeof(containerId) === 'string') {
@@ -99,6 +100,84 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return headers;
   }
 
+  // f is passed the select element and index (0-based) (only if the select element exists)
+  // fTd is passed the td element and index (only if the select element does not exist)
+  function forEachSubheader(f, fTd) {
+    const tds = getSubheaderTr().getElementsByTagName('TD');
+    for (let i = 0; i !== tds.length; ++i) {
+      const td = tds[i];
+      const selects = td.getElementsByTagName('SELECT');
+      if (selects.length === 0) {
+        if (fTd) {
+          fTd(td, i);
+        }
+      } else if (f) {
+        f(selects[0], i);
+      }
+    }
+  }
+
+  function getSubheaders() {
+    const vs = [];
+    forEachSubheader(
+      function(s) { vs.push(s.value) },
+      function() { vs.push(null); }
+    );
+    return vs;
+  }
+
+  function hideSubheaders() {
+    forEachSubheader(function(s) {
+      s.style.display = 'none';
+    });
+  }
+
+  // optionSpecs is a list of option specifications (one per column).
+  // Each option specification is an object mapping values to display names.
+  // A subheader change function takes arguments oldValue, newValue,
+  // column values and returns the new column values (or null for no change)
+  function setSubheaders(optionSpecs, defaultOptions) {
+    if (!optionSpecs) {
+      return;
+    }
+    forEachSubheader(
+      function(s, i) {
+        if (!(i in optionSpecs) || !optionSpecs[i]) {
+          s.style.display = 'none';
+          return;
+        }
+        const spec = optionSpecs[i];
+        const values = Object.keys(spec);
+        s.style.display = 'block';
+        s.textContent = ''; // clear out existing options
+        createElementArray(s, 'OPTION', values, function(opt, value) {
+          opt.textContent = spec[value];
+          opt.value = value;
+        });
+        reunittingFunction = null;
+        let oldValue = values[0];
+        if (defaultOptions && i in defaultOptions && defaultOptions[i]) {
+          oldValue = defaultOptions[i];
+          s.value = oldValue;
+        }
+        s.onchange = function() {
+          let oldColumn = null;
+          let newColumn = null;
+          if (reunittingFunction) {
+            oldColumn = getColumn(i);
+            newColumn = reunittingFunction(i, oldValue, s.value, oldColumn);
+          }
+          console.log(oldColumn, newColumn);
+          undo.undoable(
+            setColumnAndSubheaderAction(
+              i, oldValue, s.value, oldColumn, newColumn
+            )
+          );
+        };
+      }
+    );
+  }
+
   function refocus() {
     hiddenTextarea.focus();
   }
@@ -143,7 +222,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return c < 26? u : String.fromCharCode(c / 26 + unicodeForA - 1).concat(u);
   }
 
-  function init(headers, rows) {
+  function init(headers, rows, subheaderSpecs, subheaderDefaults) {
     if (typeof(headers) === 'number') {
       columnsAreFlexible = true;
       const n = headers;
@@ -151,6 +230,8 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       for(let i = 0; i < n; ++i) {
         headers.push(flexibleColumnName(i));
       }
+      subheaderSpecs = null;
+      subheaderDefaults = null;
     } else {
       columnsAreFlexible = false;
     }
@@ -178,7 +259,9 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     createElementArray(thead, 'TR', 1, function(tr) {
       tr.setAttribute('class', 'subheader');
       createElementArray(tr, 'TH', 1);
-      createElementArray(tr, 'TD', headers.length);
+      createElementArray(tr, 'TD', headers.length, function(td) {
+        createElementArray(td, 'SELECT', 1);
+      });
     });
     const tbody = createElementArray('TBODY', 'TR', rows, function (tr, i) {
       const rowData = data[i];
@@ -204,6 +287,11 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       table.appendChild(tbody);
     } else {
       table.replaceChild(tbody, oldTBodies[0]);
+    }
+    if (typeof(subheaderSpecs) === 'undefined' || !subheaderSpecs) {
+      hideSubheaders();
+    } else {
+      setSubheaders(subheaderSpecs, subheaderDefaults);
     }
     anchorRow = 0;
     selectionRow = 0;
@@ -896,7 +984,29 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     const oldValues = getCells(rowStart, rowEnd, columnStart, columnEnd);
     putCells(rowStart, rowEnd, columnStart, columnEnd, values);
     setSelection(rowStart, columnStart, rowEnd - 1, columnEnd - 1);
-    return function () { return putCellsAction(rowStart, rowEnd, columnStart, columnEnd, oldValues) };
+    return function () { return putCellsAction(rowStart, rowEnd, columnStart, columnEnd, oldValues); };
+  }
+
+  function setColumnAndSubheaderAction(columnIndex, oldValue, newValue, oldColumn, newColumn) {
+    if (newColumn) {
+      forEachRow(0, rowCount, function(row, i) {
+        forEachColumn(row, columnIndex, columnIndex+1, function(cell) {
+          cell.textContent = newColumn[i];
+        });
+      });
+    }
+    const tds = getSubheaderTr().getElementsByTagName('TD');
+    if (columnIndex < tds.length) {
+      const selects = tds[columnIndex].getElementsByTagName('SELECT');
+      if (selects.length !== 0) {
+        selects[0].value = newValue;
+      }
+    }
+    return function() {
+      return setColumnAndSubheaderAction(
+        columnIndex, newValue, oldValue, newColumn, oldColumn
+      );
+    };
   }
 
   function doUndo() {
@@ -1257,7 +1367,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       : (bc0 === -1? getRowHeader(br) : getCell(br, bc));
     scrollIntoView(cell2);
     scrollIntoView(cell);
-}
+  }
 
   function moveSelection(ev) {
     if (!ev.shiftKey || ev.altKey || ev.metaKey) {
@@ -1269,6 +1379,16 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       scrollToCell(dest.row, dest.column, anchorRow, anchorColumn);
       return false;
     }
+  }
+
+  function getColumn(column) {
+    let vs = [];
+    forEachRow(0, rowCount, function (row) {
+      forEachColumn(row, column, column + 1, function (cell) {
+        vs.push(getCellContents(cell));
+      });
+    });
+    return vs;
   }
 
   function clampRow(r) {
@@ -1306,12 +1426,19 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   return {
     /**
      * Re-initializes the table.
+     * 
+     * Any reunitting function is removed.
      * @param {string[]|number} headers Array of strings to become the new
-     * column headers, or the number of columns to create if column addition
-     * and deletion is required.
+     * column headers, or the number of columns to create for 'flexible columns'
+     * (if column addition and deletion is required).
      * @param {number|Array.<Array.<string>>} rows Number of rows the table should now
      * have, or array of rows, each of which is an array of the cells in that row.
      * Any row longer than the headers array is truncated.
+     * @param {Object[]=} subheaderSpecs List of option specifications (one
+     * per column). Each is a map of names to display strings of the options.
+     * Not permitted with flexible columns.
+     * @param {string[]=} subheaderDefaults List of names that are the initial
+     * settings of the subheader selects. Not permitted with flexible columns.
      */
     init: init,
     /**
@@ -1394,28 +1521,29 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @returns {string[]} array of strings.
      */
     getColumnHeaders: getColumnHeaders,
-    /** 
-     * Returns the subheader TD cell of the specified column,
-     * or the subheader TH cell if -1 is requested.
-     * 
-     * There is a second TR row in the THEAD of the table.
-     * It has the class 'subheader' and is filled with one
-     * TH cell and a number of TD cells, one per column.
-     * The easiest thing to do with it is to use a stylesheet
-     * rule to make it invisible, but it can be used for any
-     * other use the user desires; dataEntryGrid will not
-     * molest this row except to delete and add TDs if
-     * columns are deleted and added.
-     * 
-     * @param {number} column which column's subheader
-     * to return, or -1 to return the TH element.
-     * @returns {element} the TD or TH element
+    /**
+     * Returns selected options in subheaders
+     * @returns  {string[]} array of strings
      */
-    getColumnSubheader: function(column) {
-      if (column < -1 || columnCount <= column) {
-        return null;
-      }
-      return getSubheaderTr().children[column + 1]
+    getSubheaders: getSubheaders,
+    /**
+     * A function for changing a column in response to a subheader's
+     * value changing.
+     * @callback reunitter
+     * @param {number} columnIndex Which column is being changed
+     * @param {string} oldValue The value that the subheader is being changed from
+     * @param {string} newValue The value that the subheader is being changed from
+     * @param {string[]} columnValues The current values in the column
+     * @returns {null|string[]} The new values the column should have, or null
+     * if they should be unchanged.
+     */
+    /**
+     * Sets a function to be called whenever a subheader is changed.
+     * This function can change the values in the column.
+     * @param {reunitter} fn 
+     */
+    setReunittingFunction: function (fn) {
+      reunittingFunction = fn;
     },
     /**
      * Moves the anchor (and selection to the same place)
@@ -1457,15 +1585,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @param {number} column index of the column to return
      * @returns {string[]} data from that column
      */
-    getColumn: function(column) {
-      let vs = [];
-      forEachRow(0, rowCount, function (row) {
-        forEachColumn(row, column, column + 1, function (cell) {
-          vs.push(getCellContents(cell));
-        });
-      });
-      return vs;
-    },
+    getColumn: getColumn,
     /**
      * Clear the undo and redo stacks.
      */

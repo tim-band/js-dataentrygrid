@@ -8,6 +8,7 @@ const fs = require('fs');
 const clipboardy = require("clipboardy");
 // Maybe one day these tests will work on IE
 const { Options } = require('selenium-webdriver/ie');
+const they = it;
 
 function findArg(a) {
   for (let i = 1; i < process.argv.length; ++i) {
@@ -580,7 +581,7 @@ describe('dataentrygrid', async function () {
       await doGet();
     });
 
-    it('can be set via the API', async function() {
+    they('can be set via the API', async function() {
       const newRows = 5;
       const newHeaders = ['proton', 'neutron', 'electron', 'positron'];
       await init(driver, newHeaders, newRows);
@@ -605,7 +606,7 @@ describe('dataentrygrid', async function () {
         }
     });
 
-    it('can be read via the API', async function() {
+    they('can be read via the API', async function() {
       const headerss = [['one', 'two'], ['whiskey', 'x-ray', 'yankee', 'zulu']];
       for (let h = 0; h != headerss.length; ++h) {
         const headers = headerss[h];
@@ -617,7 +618,7 @@ describe('dataentrygrid', async function () {
       }
     });
 
-    it('can be set automatically when requesting flexible columns', async function() {
+    they('can be set automatically when requesting flexible columns', async function() {
       const columnCount = 60;
       await init(driver, columnCount, 3);
       const actualHeaders = await readHeaders(driver);
@@ -631,7 +632,7 @@ describe('dataentrygrid', async function () {
       assert.deepStrictEqual(actualHeaders, headers);
     });
 
-    it('do not permit column addition or deletion if inflexible', async function() {
+    they('do not permit column addition or deletion if inflexible', async function() {
       await asyncForEach([
         {headers: ['in', 'flexy', 'ball'], expectedElements: 0},
         {headers: 3, expectedElements: 1}
@@ -648,32 +649,22 @@ describe('dataentrygrid', async function () {
       });
     });
 
-    it('keep the same when columns deleted', async function() {
+    they('keep the same when columns deleted', async function() {
       await init(driver, 5, 3);
-      await setSubheader(driver, 1, 'sam');
-      await setSubheader(driver, 2, 'merry');
-      await setSubheader(driver, 3, 'pippin');
-      await setSubheader(driver, 4, 'frodo');
       await dragColumnHeaders(driver, 2, 3);
       await columnHeaderRightClick(driver, 3);
       await contextMenuSelect(driver, 'column-delete');
       const headers = await getColumnHeaders(driver);
       assert.deepStrictEqual(headers, ['A', 'B', 'C']);
-      const sh = await getSubheaders(driver);
-      assert.deepStrictEqual(sh, ['', 'sam', 'frodo']);
     });
 
-    it('are correct when columns are added in the middle', async function() {
+    they('are correct when columns are added in the middle', async function() {
       await init(driver, 5, 3);
-      await setSubheader(driver, 1, 'alpha');
-      await setSubheader(driver, 2, 'beta');
       await dragColumnHeaders(driver, 2, 3);
       await columnHeaderRightClick(driver, 3);
       await contextMenuSelect(driver, 'column-add-before');
       const headers = await getColumnHeaders(driver);
       assert.deepStrictEqual(headers, ['A', 'B', 'C', 'D', 'E', 'F', 'G']);
-      const sh = await getSubheaders(driver);
-      assert.deepStrictEqual(sh, ['', 'alpha', '', '', 'beta', '', '']);
     });
   });
 
@@ -681,23 +672,67 @@ describe('dataentrygrid', async function () {
 
     beforeEach(async function () {
       await doGet();
-      await driver.executeScript(
-        'var e = document.createElement("select");' +
-        'e.setAttribute("id", "subheader-select");' +
-        'var o1 = document.createElement("option");' +
-        'o1.textContent = "alpha";' +
-        'o1.setAttribute("value", "subheader-alpha");' +
-        'var o2 = document.createElement("option");' +
-        'o2.textContent = "beta";' +
-        'o2.setAttribute("value", "subheader-beta");' +
-        'e.append(o1,o2);' +
-        'window.dataEntryGrid.getColumnSubheader(1).appendChild(e);'
-      );
     });
 
-    it('allow clicks', async function() {
-      await driver.findElement(By.id('subheader-select')).click();
+    they('default to the first option', async function() {
+      // unfortunately executeScript scrambles object argument's key orders
+      // so we have to set the object as part of the script.
+      await driver.executeScript(
+        'window.dataEntryGrid.init(["a","b","c"], 5, ['
+        +'{"salpha": "alpha", "sbeta": "beta"},'
+        +'{"sgamma": "gamma", "sdelta": "delta"},'
+        +'{"sepsilon": "epsilon", "szeta": "zeta"}]);');
+      assert.deepStrictEqual(await getSubheaders(driver), [
+        'salpha', 'sgamma', 'sepsilon'
+      ]);
+    });
+
+    they('honour defaults', async function() {
+      const defaults = ['salpha', 'sdelta', 'szeta'];
+      await init(driver, ['one', 'two', 'three'], 5, [
+        {'salpha': 'alpha', 'sbeta': 'beta'},
+        {'sgamma': 'gamma', 'sdelta': 'delta'},
+        {'sepsilon': 'epsilon', 'szeta': 'zeta'},
+      ], defaults);
+      assert.deepStrictEqual(await getSubheaders(driver), defaults);
+    });
+
+    they('allow clicks', async function() {
+      await init(driver, ['one', 'two', 'three'], 5, [
+        { 'subheader-alpha': 'alpha', 'subheader-beta': 'beta' },
+        null, null
+      ]);
+      await driver.findElement(By.css('.subheader select')).click();
       await driver.findElement(By.css('option[value="subheader-beta"]')).click();
+    });
+
+    they('allow a function to alter the column', async function() {
+      await driver.executeScript(
+        'window.dataEntryGrid.init(["length","width"], ['
+        + '[50.8, 130],'
+        + '[-965.2, 508],'
+        +'], ['
+        +'{"mm": "millimeters", "in": "inches"},'
+        +'{"mm": "millimeters", "in": "inches"}]);'
+        +'window.dataEntryGrid.setReunittingFunction(function(i,ov,nv,vs){'
+        + 'var xs=[];'
+        + 'var f=function(x){return x/25.4};'
+        + 'for(var r=0;r!==vs.length;++r){xs.push(f(vs[r]));}'
+        + 'return xs;'
+        +'});'
+      );
+      const values = [[50.8, 130], [-965.2, 508]];
+      await assertCellsFloat(driver, 0, 0, values);
+      await driver.findElement(By.css('.subheader select')).click();
+      await driver.findElement(By.css('option[value="in"]')).click();
+      const mixedValues = [[2.0, 130], [-38.0, 508]];
+      await assertCellsFloat(driver, 0, 0, mixedValues);
+      const undoButton = await driver.findElement(By.id('undo'));
+      await undoButton.click();
+      await assertCellsFloat(driver, 0, 0, values);
+      const redoButton = await driver.findElement(By.id('redo'));
+      await redoButton.click();
+      await assertCellsFloat(driver, 0, 0, mixedValues);
     });
   });
 
@@ -869,12 +904,13 @@ describe('dataentrygrid', async function () {
   });
 
   describe('control buttons', function() {
+    this.timeout(5000);
 
     beforeEach(async function () {
       await doGet();
     });
 
-    it('can be set', async function() {
+    they('can be set', async function() {
       const undoButton = await driver.findElement(By.id('undo'));
       const redoButton = await driver.findElement(By.id('redo'));
       await setButtons(driver, undoButton, redoButton);
@@ -893,7 +929,7 @@ describe('dataentrygrid', async function () {
       await assertCellContents(driver, 1, 1, c1);
     });
 
-    it('get disabled appropriately', async function() {
+    they('get disabled appropriately', async function() {
       const undoButton = await driver.findElement(By.id('undo'));
       const redoButton = await driver.findElement(By.id('redo'));
       await setButtons(driver, undoButton, redoButton);
@@ -1012,9 +1048,9 @@ describe('dataentrygrid', async function () {
     it('scrolls to follow mouse drag', async function() {
       this.timeout(5000);
       await setScroll(driver, frame, 10, 200);
-      let element = await getCell(driver, 20, 1);
+      let element = await getCell(driver, 15, 1);
       await driver.actions({bridge: true}).move({origin: element}).press().perform();
-      for (let i = 19; 0 <= i; --i) {
+      for (let i = 14; 0 <= i; --i) {
         element = await getCell(driver, i, 1);
         await driver.actions({bridge: true}).move({origin: element}).perform();
         const r = await getBoundingRect(driver, element);
@@ -1218,6 +1254,26 @@ async function assertCellContents(driver, row, column, expectedContents) {
   assert.strictEqual(text, ''+expectedContents, 'visible text not as expected');
 }
 
+async function assertCellFloat(driver, row, column, expected) {
+  const r = Number(row);
+  const c = Number(column);
+  // assert that the cell is reported as expected
+  const rows = await getCells(driver, r, r + 1, c, c + 1);
+  const actual = Number(rows[0][0]);
+  const delta = (Math.abs(expected)+1e-9) * 0.0001;
+  assert(expected - delta < actual && actual < expected + delta,
+    `actual value ${actual} does not match expected value ${expected}`);
+}
+
+async function assertCellsFloat(driver, row, column, rows) {
+  for (let i = 0; i !== rows.length; ++i) {
+    let cells = rows[i];
+    for (let j = 0; j !== cells.length; ++j) {
+      await assertCellFloat(driver, row + i, column + j, cells[j]);
+    }
+  }
+}
+
 async function getText(cell) {
   const inputs = await cell.findElements(By.css('input'));
   if (inputs.length === 0) {
@@ -1290,10 +1346,10 @@ async function clickCell(driver, row, column) {
   await cell.click();
 }
 
-async function init(driver, headers, rows) {
+async function init(driver, headers, rows, subheaderSpecs, subheaderDefaults) {
   return await driver.executeScript(
-      'window.dataEntryGrid.init(arguments[0], arguments[1]);',
-      headers, rows);
+      'window.dataEntryGrid.init(arguments[0], arguments[1], arguments[2], arguments[3]);',
+      headers, rows, subheaderSpecs, subheaderDefaults);
 }
 
 async function extendRows(driver, rows) {
@@ -1357,17 +1413,7 @@ async function clearData(driver) {
 
 async function getSubheaders(driver) {
   return await driver.executeScript(
-    'var deg = window.dataEntryGrid;' +
-    'var cc = deg.columnCount();' +
-    'var h = [], i;' +
-    'for (i = 0; i != cc; ++i) {' +
-    'h.push(deg.getColumnSubheader(i).textContent);' +
-    '} return h;');
-}
-
-async function setSubheader(driver, column, text) {
-  await driver.executeScript(
-    `window.dataEntryGrid.getColumnSubheader(${column}).textContent = '${text}';`);
+    'return window.dataEntryGrid.getSubheaders();');
 }
 
 async function getColumnHeaders(driver) {
