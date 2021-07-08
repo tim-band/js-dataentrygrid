@@ -167,7 +167,6 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
             oldColumn = getColumn(i);
             newColumn = reunittingFunction(i, oldValue, s.value, oldColumn);
           }
-          console.log(oldColumn, newColumn);
           undo.undoable(
             setColumnAndSubheaderAction(
               i, oldValue, s.value, oldColumn, newColumn
