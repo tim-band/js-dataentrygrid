@@ -155,21 +155,25 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
           opt.value = value;
         });
         reunittingFunction = null;
-        let oldValue = values[0];
         if (defaultOptions && i in defaultOptions && defaultOptions[i]) {
-          oldValue = defaultOptions[i];
-          s.value = oldValue;
+          s.value = defaultOptions[i];
+        } else {
+          s.value = values[0];
         }
+        s.oldValue = s.value;
         s.onchange = function() {
+          if (s.value === s.oldValue) {
+            return;
+          }
           let oldColumn = null;
           let newColumn = null;
           if (reunittingFunction) {
             oldColumn = getColumn(i);
-            newColumn = reunittingFunction(i, oldValue, s.value, oldColumn);
+            newColumn = reunittingFunction(i, s.oldValue, s.value, oldColumn);
           }
           undo.undoable(
             setColumnAndSubheaderAction(
-              i, oldValue, s.value, oldColumn, newColumn
+              i, s.oldValue, s.value, oldColumn, newColumn
             )
           );
         };
@@ -999,6 +1003,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       const selects = tds[columnIndex].getElementsByTagName('SELECT');
       if (selects.length !== 0) {
         selects[0].value = newValue;
+        selects[0].oldValue = newValue; // not oldValue!
       }
     }
     return function() {

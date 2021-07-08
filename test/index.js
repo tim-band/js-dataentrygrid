@@ -715,24 +715,35 @@ describe('dataentrygrid', async function () {
         +'{"mm": "millimeters", "in": "inches"},'
         +'{"mm": "millimeters", "in": "inches"}]);'
         +'window.dataEntryGrid.setReunittingFunction(function(i,ov,nv,vs){'
-        + 'var xs=[];'
-        + 'var f=function(x){return x/25.4};'
-        + 'for(var r=0;r!==vs.length;++r){xs.push(f(vs[r]));}'
-        + 'return xs;'
+        + 'var f={"mm":{"mm":function(x){return x;},"in":function(x){return x/25.4;}},'
+        +  '"in":{"in":function(x){return x;},"mm":function(x){return x*25.4;}}};'
+        + 'return vs.map(f[ov][nv]);'
         +'});'
       );
       const values = [[50.8, 130], [-965.2, 508]];
       await assertCellsFloat(driver, 0, 0, values);
-      await driver.findElement(By.css('.subheader select')).click();
+      const select = await driver.findElement(By.css('.subheader select'));
+      select.click();
       await driver.findElement(By.css('option[value="in"]')).click();
       const mixedValues = [[2.0, 130], [-38.0, 508]];
       await assertCellsFloat(driver, 0, 0, mixedValues);
       const undoButton = await driver.findElement(By.id('undo'));
       await undoButton.click();
       await assertCellsFloat(driver, 0, 0, values);
+      assert.strictEqual(await select.getAttribute('value'), 'mm');
       const redoButton = await driver.findElement(By.id('redo'));
       await redoButton.click();
       await assertCellsFloat(driver, 0, 0, mixedValues);
+      assert.strictEqual(await select.getAttribute('value'), 'in');
+      select.click();
+      await driver.findElement(By.css('option[value="mm"]')).click();
+      await assertCellsFloat(driver, 0, 0, values);
+      select.click();
+      await driver.findElement(By.css('option[value="mm"]')).click();
+      await assertCellsFloat(driver, 0, 0, values);
+      await undoButton.click();
+      await assertCellsFloat(driver, 0, 0, mixedValues);
+      assert.strictEqual(await select.getAttribute('value'), 'in');
     });
   });
 
