@@ -247,7 +247,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       tr.setAttribute('class', 'header');
       createElementArray(tr, 'TH', 1, function(th) {
         const div = createElement('DIV', {
-          style: 'width:0;height:0;overflow:hidden;position:fixed'
+          style: 'width:0;height:0;overflow:hidden;position:fixed;top:-99px;left:-99px;'
         });
         hiddenTextarea = createElement('TEXTAREA', { tabindex: '-1' });
         div.appendChild(hiddenTextarea);
@@ -1460,7 +1460,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     /**
      * Sets localized text for the row header context table.
      * @param {Object} newText Text of table ids to strings. The ids currently
-     * recognized are 'cut', 'copy', `deleteRow`, `addRowBefore`, `addRowAfter`,
+     * recognized are `cut`, `copy`, `deleteRow`, `addRowBefore`, `addRowAfter`,
      * `deleteColumn`, `addColumnBefore` and `addColumnAfter`.
      */
     setText: function (newText) {
