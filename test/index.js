@@ -753,13 +753,13 @@ describe('dataentrygrid', async function () {
       await doGet();
     });
 
-    it('can be added in bulk', async function() {
+    they('can be added in bulk', async function() {
       const totalRows = 6;
       await extendRows(driver, totalRows);
       assert.strictEqual(await getRowCount(driver), totalRows);
     });
 
-    it('can be added', async function() {
+    they('can be added', async function() {
       const rc = await getRowCount(driver);
       const contents = '32.1';
       await sendKeys(driver, contents);
@@ -780,7 +780,7 @@ describe('dataentrygrid', async function () {
       await assertCellContents(driver, 3, 0, '');
     });
 
-    it('can be deleted', async function() {
+    they('can be deleted', async function() {
       // ensure we have at least four rows
       await clickCell(driver, 0, 0);
       await repeatKey(driver, 4, Key.RETURN);
@@ -797,7 +797,7 @@ describe('dataentrygrid', async function () {
       await assertCellContents(driver, 1, 0, rows[3][0]);
     });
 
-    it('are automatically added as required', async function() {
+    they('are automatically added as required', async function() {
       const rc = await getRowCount(driver);
       await clickCell(driver, rc - 1, 0);
       const firstContents = '123';
@@ -819,6 +819,126 @@ describe('dataentrygrid', async function () {
       const option = await driver.findElement(By.css('option[value="delete"]'));
       const disabled = await option.getAttribute('disabled');
       assert(disabled, 'row delete option should be disabled');
+    });
+  });
+
+  describe('columns', function() {
+
+    const headers = ['red', 'green', 'blue'];
+    const values = [[1.2, 2.3, 3.4], [6.1, 7.2, 8.3], [3.3, 4.3, 5.3]];
+
+    beforeEach(async function () {
+      await doGet();
+      await init(driver, headers, values);
+    });
+
+    they('can be set and got by index', async function() {
+      const cols = [
+        [1.1, 2.2, 3.3],
+        [4.4],
+        [5.5, 6.6]
+      ];
+      await driver.executeScript(
+        'var c=arguments[0];window.dataEntryGrid.setColumnArray(c);',
+        cols
+      );
+      for (let c = 0; c !== cols.length; ++c) {
+        const col = cols[c];
+        for (let r = 0; r !== 3; ++r) {
+          const v = r < col.length? '' + col[r] : '';
+          await assertCellContents(driver, r, c, v);
+        }
+      }
+      const actual = await driver.executeScript(
+        'return window.dataEntryGrid.getColumnArray();'
+      );
+      // expected columns have numbers converted to strings and are
+      // padded with empty strings.
+      const expected = cols.map(col => {
+        let r = col.map(String);
+        while (r.length < 3) {
+          r.push('');
+        }
+        return r;
+      });
+      assert.deepStrictEqual(actual, expected);
+      const actual02 = await driver.executeScript(
+        'return window.dataEntryGrid.getColumns([0,2]);'
+      );
+      assert.deepStrictEqual(actual02[0], expected[0]);
+      assert(!(1 in actual02));
+      assert.deepStrictEqual(actual02[2], expected[2]);
+    });
+
+    they('can be set and got by header', async function() {
+      const cols = {
+        blue: [1.1, 2.2, 3.3],
+        red: [5.5, 6.6]
+      };
+      await driver.executeScript(
+        'var c=arguments[0];window.dataEntryGrid.setColumns(c);',
+        cols
+      );
+      for (let c = 0; c !== 3; ++c) {
+        const h = headers[c];
+        const col = h in cols? cols[h] : null;
+        for (let r = 0; r !== 3; ++r) {
+          const v = col == null?
+            ('' + values[r][c])
+            : (r < col.length? '' + col[r] : '');
+          await assertCellContents(driver, r, c, v);
+        }
+      }
+      const actualRed = await driver.executeScript(
+        'return window.dataEntryGrid.getColumns(["red"]);'
+      );
+      assert(!("blue" in actualRed));
+      assert.deepStrictEqual(actualRed['red'], ['5.5', '6.6', '']);
+    });
+
+    they('can be extended', async function() {
+      const cols = {
+        blue: [1.1, 2.2, 3.3, 4.4, 5.5],
+      };
+      await driver.executeScript(
+        'var c=arguments[0];window.dataEntryGrid.setColumns(c);',
+        cols
+      );
+      for (let c = 0; c !== 3; ++c) {
+        const h = headers[c];
+        const col = h in cols? cols[h] : null;
+        for (let r = 0; r !== 5; ++r) {
+          const v = col == null?
+            (r < values.length? '' + values[r][c] : '')
+            : (r < col.length? '' + col[r] : '');
+          await assertCellContents(driver, r, c, v);
+        }
+      }
+    });
+
+    they('can be reduced when all set', async function() {
+      const cols = [
+        [1.1, 2.2],
+        [4.4],
+        [5.5]
+      ];
+      await driver.executeScript(
+        'var c=arguments[0];window.dataEntryGrid.setColumnArray(c);',
+        cols
+      );
+      const expectedRowCount = cols.reduce(
+        (n, c) => { return Math.max(n, c.length); },
+        0
+      );
+      const rc = await getRowCount(driver);
+      assert.strictEqual(rc, expectedRowCount);
+      for (let c = 0; c !== cols.length; ++c) {
+        const col = cols[c];
+        for (let r = 0; r !== 2; ++r) {
+          const v = r < col.length? '' + col[r] : '';
+          await assertCellContents(driver, r, c, v);
+        }
+      }
     });
   });
 

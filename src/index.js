@@ -100,6 +100,15 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return headers;
   }
 
+  function columnHeaderToIndexMap() {
+    const ths = getColumnHeaderRow();
+    const mapping = {};
+    for (let i = 1; i !== ths.length; ++i) {
+      mapping[ths[i].textContent] = i - 1;
+    }
+    return mapping;
+  }
+
   // f is passed the select element and index (0-based) (only if the select element exists)
   // fTd is passed the td element and index (only if the select element does not exist)
   function forEachSubheader(f, fTd) {
@@ -433,6 +442,13 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return function () {
       return deleteRows(r, count);
     };
+  }
+
+  function extendRows(rows) {
+    const nr = rows - rowCount;
+    if (0 < nr) {
+      insertRows(rowCount, nr);
+    }
   }
 
   function deleteRows(r, count) {
@@ -1435,7 +1451,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @param {string[]|number} headers Array of strings to become the new
      * column headers, or the number of columns to create for 'flexible columns'
      * (if column addition and deletion is required).
-     * @param {number|Array.<Array.<string>>} rows Number of rows the table should now
+     * @param {number|Array<Array<string>>} rows Number of rows the table should now
      * have, or array of rows, each of which is an array of the cells in that row.
      * Any row longer than the headers array is truncated.
      * @param {Object[]=} subheaderSpecs List of option specifications (one
@@ -1451,12 +1467,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * have after the call. If the table already had this many no more will
      * be added and none will be taken away.
      */
-    extendRows: function(rows) {
-      const nr = rows - rowCount;
-      if (0 < nr) {
-        insertRows(rowCount, nr);
-      }
-    },
+    extendRows: extendRows,
     /**
      * Sets localized text for the row header context table.
      * @param {Object} newText Text of table ids to strings. The ids currently
@@ -1563,7 +1574,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @param {number} [columnStart=0] first column
      * @param {number} [columnEnd] one past the last column, defaults
      * to (one past) the last column
-     * @returns {Array.<Array.<string>>} The cell contents
+     * @returns {Array<Array<string>>} The cell contents
      */
     getCells: getCells,
     /**
@@ -1572,7 +1583,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @param {number} rowEnd one past the last row
      * @param {number} columnStart first column
      * @param {number} columnEnd one past the last column
-     * @param {Array.<Array.<string>>} values an array of arrays of new cell values.
+     * @param {Array<Array<string>>} values an array of arrays of new cell values.
      */
     putCells: function (rowStart, rowEnd, columnStart, columnEnd, values) {
       undo.undoable(putCellsAction(rowStart, rowEnd, columnStart, columnEnd, values));
@@ -1590,6 +1601,110 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @returns {string[]} data from that column
      */
     getColumn: getColumn,
+    /**
+     * Returns an array of all columns.
+     * @returns {Array<Array<any>>} All the columns as an array of
+     * arrays of cell contents.
+     */
+    getColumnArray: function() {
+      const out = new Array(columnCount);
+      for (let i = 0; i !== columnCount; ++i) {
+        out[i] = new Array();
+      }
+      forEachRow(0, rowCount, row => {
+        forEachColumn(row, 0, columnCount, (cell, c) => {
+          out[c].push(cell.textContent);
+        });
+      });
+      return out;
+    },
+    /**
+     * Returns a map of column headers or indices to columns.
+     * @param {Array<any>} [columns=] Which columns to return, either
+     * by index or by header (or a mixture). If not supplied, the entire set
+     * of cell column headers is used.
+     * @returns {Map<any, Array<any>} A map of column headers
+     * to the column (as an array of cell contents).
+     */
+    getColumns: function(columns) {
+      if (typeof(columns) !== 'object') {
+        columns = getColumnHeaders();
+      }
+      const h2i = columnHeaderToIndexMap();
+      const out = {};
+      for(let i in columns) {
+        const c = columns[i];
+        out[c] = [];
+      }
+      forEachRow(0, rowCount, row => {
+        const cells = row.getElementsByTagName('TD');
+        for(let i in columns) {
+          const c = columns[i];
+          const index = typeof(c) === 'number'? c : h2i[c];
+          const cell = cells[index];
+          if (typeof(cell) !== 'undefined') {
+            out[c].push(cell.textContent);
+          }
+        }
+      });
+      return out;
+    },
+    /**
+     * Sets the contents of the table by column.
+     * 
+     * You need not set all the columns. If any column in the input array
+     * is longer than the number of already existing number of rows,
+     * the table will be expanded to fit. If any column is shorter, the
+     * remaining cells will be cleared. Cleared rows will not be deleted.
+     * @param {Map<any, Array<string>>|Array<Array<any>>} columns
+     * The columns to set. If an array is passed, the elements are the
+     * columns to be set in order. If a map is passed, the keys are
+     * strings referring to the headers you want to set and each value
+     * is an array of column contents to set into that column.
+     */
+    setColumns: function(columns) {
+      let rowsRequired = 0;
+      for (let k in columns) {
+        rowsRequired = Math.max(rowsRequired, columns[k].length);
+      }
+      extendRows(rowsRequired);
+      const h2i = columnHeaderToIndexMap();
+      forEachRow(0, rowCount, (row, r) => {
+        const cells = row.getElementsByTagName('TD');
+        for(let k in columns) {
+          const column = columns[k];
+          const cell = cells[h2i[k]];
+          const v = column[r];
+          cell.textContent = typeof(v) === 'undefined'? '' : v;
+        }
+      });
+    },
+    /**
+     * Sets the contents of the table by column.
+     * 
+     * On return, the table will contain the number of rows
+     * equal to the length of the longest column passed.
+     * Unset cells are cleared.
+     * @param {Array<Array<any>>} columns The columns to set, in order.
+     */
+     setColumnArray: function(columns) {
+      const rowsRequired = columns.reduce((maxSoFar, newColumn) => {
+        return Math.max(maxSoFar, newColumn.length);
+      }, 0);
+      extendRows(rowsRequired);
+      if (rowsRequired < rowCount) {
+        deleteRows(rowsRequired, rowCount - rowsRequired);
+      }
+      forEachRow(0, rowCount, (row, r) => {
+        const cells = row.getElementsByTagName('TD');
+        for(let k in columns) {
+          const column = columns[k];
+          const cell = cells[k];
+          const v = column[r];
+          cell.textContent = typeof(v) === 'undefined'? '' : v;
+        }
+      });
+    },
     /**
      * Clear the undo and redo stacks.
      */
