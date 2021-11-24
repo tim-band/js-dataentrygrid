@@ -77,6 +77,12 @@ describe('dataentrygrid', async function () {
         done()));
   });
 
+  it('contains mutual links between itself and its HTML representation', async function() {
+    await doGet();
+    const eq = await driver.executeScript('var d=window.dataEntryGrid;return d===d.getTable().dataEntryGrid;');
+    assert.ok(eq, 'grid.getTable().dataEntryGrid !== grid');
+  });
+
   describe('highlight (visual and API)', function () {
     this.timeout(8000);
 

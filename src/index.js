@@ -1,6 +1,8 @@
 /**
  * Initialize an HTML table to be a data entry grid.
  * 
+ * The HTML table made interactive will gain a `dataEntryGrid`
+ * member referring to the table object returned.
  * @param {string}  containerId id of the `table` element you want to make interactive
  * @param {string[]|number} headers array of strings to become the new column headers
  * or the number of columns to be created. If a number is given, the columns will be
@@ -1443,7 +1445,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   };
   init(headers, newRowCount);
   refocus();
-  return {
+  table.dataEntryGrid = {
     /**
      * Re-initializes the table.
      * 
@@ -1734,4 +1736,5 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      */
     getTable: () => table
   };
+  return table.dataEntryGrid;
 };
