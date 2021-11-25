@@ -879,7 +879,8 @@ describe('dataentrygrid', async function () {
     they('can be set and got by header', async function() {
       const cols = {
         blue: [1.1, 2.2, 3.3],
-        red: [5.5, 6.6]
+        red: [5.5, 6.6],
+        pink: [10, 20, 30]
       };
       await driver.executeScript(
         'var c=arguments[0];window.dataEntryGrid.setColumns(c);',
@@ -896,9 +897,12 @@ describe('dataentrygrid', async function () {
         }
       }
       const actualRed = await driver.executeScript(
-        'return window.dataEntryGrid.getColumns(["red"]);'
+        'return window.dataEntryGrid.getColumns(["red", "pink"]);'
       );
       assert(!("blue" in actualRed));
+      // pink should not be set because there is no "pink" column:
+      // setColumns never creates new columns.
+      assert(!("pink" in actualRed));
       assert.deepStrictEqual(actualRed['red'], ['5.5', '6.6', '']);
     });
 

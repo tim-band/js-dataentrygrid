@@ -1624,7 +1624,8 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * Returns a map of column headers or indices to columns.
      * @param {Array<any>} [columns=] Which columns to return, either
      * by index or by header (or a mixture). If not supplied, the entire set
-     * of cell column headers is used.
+     * of cell column headers is used. Any element that is not a column
+     * header is ignored.
      * @returns {Map<any, Array<any>} A map of column headers
      * to the column (as an array of cell contents).
      */
@@ -1636,7 +1637,9 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       const out = {};
       for(let i in columns) {
         const c = columns[i];
-        out[c] = [];
+        if (typeof(c) === 'number' || c in h2i) {
+          out[c] = [];
+        }
       }
       forEachRow(0, rowCount, row => {
         const cells = row.getElementsByTagName('TD');
@@ -1658,11 +1661,12 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * is longer than the number of already existing number of rows,
      * the table will be expanded to fit. If any column is shorter, the
      * remaining cells will be cleared. Cleared rows will not be deleted.
-     * @param {Map<any, Array<string>>|Array<Array<any>>} columns
-     * The columns to set. If an array is passed, the elements are the
-     * columns to be set in order. If a map is passed, the keys are
-     * strings referring to the headers you want to set and each value
-     * is an array of column contents to set into that column.
+     * @param {Map<any, Array<string>>} columns
+     * The columns to set. The keys are strings referring to the headers
+     * you want to set and each value is an array of column contents to
+     * set into that column. Any key that does not refer to any existing
+     * header will be ignored: this function cannot be used to add
+     * columns to the table!
      */
     setColumns: function(columns) {
       let rowsRequired = 0;
@@ -1674,10 +1678,12 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       forEachRow(0, rowCount, (row, r) => {
         const cells = row.getElementsByTagName('TD');
         for(let k in columns) {
-          const column = columns[k];
-          const cell = cells[h2i[k]];
-          const v = column[r];
-          cell.textContent = typeof(v) === 'undefined'? '' : v;
+          if (k in h2i) {
+            const cell = cells[h2i[k]];
+            const column = columns[k];
+            const v = column[r];
+            cell.textContent = typeof(v) === 'undefined'? '' : v;
+          }
         }
       });
     },
