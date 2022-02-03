@@ -2,12 +2,13 @@
 
 const { describe, before, beforeEach, after, afterEach, it } = require('mocha');
 const assert = require('assert');
-const { Builder, By, Key, until } = require('selenium-webdriver');
+const { Builder, By, Key, until, Capabilities } = require('selenium-webdriver');
 const http = require('http');
 const fs = require('fs');
 const clipboardy = require("clipboardy");
 // Maybe one day these tests will work on IE
 const { Options } = require('selenium-webdriver/ie');
+const { Preferences, Type, Level } = require('selenium-webdriver/lib/logging');
 const they = it;
 
 function findArg(a) {
@@ -952,6 +953,55 @@ describe('dataentrygrid', async function () {
     });
   });
 
+  describe('rigid rows', function() {
+    const data = [
+      ['12', '2', '34'],
+      ['0.4', '3.2', '1.1'],
+      ['50', '51', '52.2']
+    ];
+    const rowHeaders = ['alef', 'bet', 'gimel'];
+
+    beforeEach(async function() {
+      await doGet();
+      await init(driver, ['alpha', 'beta', 'gamma'], rowHeaders);
+    });
+
+    it('Row names are as specified', async function() {
+      const rc = await getRowCount(driver);
+      assert.strictEqual(rc, rowHeaders.length);
+      for (var i in rowHeaders) {
+        await assertRowHeaderText(driver, i, rowHeaders[i]);
+      }
+    });
+
+    it('No new rows appear when pressing return on the last line', async function() {
+      const rc = await getRowCount(driver);
+      await clickCell(driver, rc - 1, 0);
+      const firstContents = '123';
+      const secondContents = '456';
+      await sendKeys(driver, firstContents, Key.RETURN, secondContents);
+      const rc2 = await getRowCount(driver);
+      assert.strictEqual(rc2, rc,
+        'row count changes when typing off the bottom row');
+      await assertCellContents(driver, rc - 1, 0, firstContents);
+      await assertCellContents(driver, rc, 0, secondContents);
+    });
+
+    it('does not allow adding rows from the row header context menu', async function() {
+      await rowHeaderRightClick(driver, 1);
+      const cmcs = await contextMenuContents(driver);
+      cmcs.sort();
+      assert.deepStrictEqual(cmcs, ['copy', 'cut']);
+    });
+
+    it('does not allow deleting rows from the context menu', async function() {
+      await cellRightClick(driver, 1, 1);
+      const cmcs = await contextMenuContents(driver);
+      cmcs.sort();
+      assert.deepStrictEqual(cmcs, ['copy', 'cut']);
+    });
+  });
+
   describe('flexible columns', function() {
     const data = [
       ['12', '2', '34', '4', '56'],
@@ -1250,6 +1300,14 @@ async function asyncForEach(arr, fn) {
   }
 }
 
+async function asyncMap(arr, fn) {
+  const r = [];
+  for (let i = 0; i != arr.length; ++i) {
+    r.push(await fn(arr[i]));
+  }
+  return r;
+}
+
 async function dragColumnHeaders(driver, startColumn, endColumn) {
   const startHeader = await columnHeaderElement(driver, startColumn);
   const endHeader = await columnHeaderElement(driver, endColumn);
@@ -1344,6 +1402,15 @@ function contextMenuLocator(option) {
   return By.css(`#input #input-context-menu option[value='${option}']`);
 }
 
+async function contextMenuContents(driver) {
+  const els = await driver.wait(async () =>
+    driver.findElements(By.css('#input #input-context-menu option')));
+  const vs = await asyncMap(els, function(el) {
+    return el.getAttribute('value');
+  });
+  return vs;
+}
+
 async function columnHeaderElement(driver, column) {
   return await driver.findElement(
     By.css(`#input thead th:nth-child(${column + 2})`));
@@ -1393,6 +1460,12 @@ async function assertCellContents(driver, row, column, expectedContents) {
   const cell = await getCell(driver, r, c);
   const text = await getText(cell);
   assert.strictEqual(text, ''+expectedContents, 'visible text not as expected');
+}
+
+async function assertRowHeaderText(driver, row, expected) {
+  const rowHeader = await rowHeaderElement(driver, row);
+  const actual = await getText(rowHeader);
+  assert.strictEqual(actual, expected);
 }
 
 async function assertCellFloat(driver, row, column, expected) {
