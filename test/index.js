@@ -969,7 +969,7 @@ describe('dataentrygrid', async function () {
     it('Row names are as specified', async function() {
       const rc = await getRowCount(driver);
       assert.strictEqual(rc, rowHeaders.length);
-      for (var i in rowHeaders) {
+      for (var i = 0; i != rowHeaders.length; ++i) {
         await assertRowHeaderText(driver, i, rowHeaders[i]);
       }
     });
@@ -983,8 +983,7 @@ describe('dataentrygrid', async function () {
       const rc2 = await getRowCount(driver);
       assert.strictEqual(rc2, rc,
         'row count changes when typing off the bottom row');
-      await assertCellContents(driver, rc - 1, 0, firstContents);
-      await assertCellContents(driver, rc, 0, secondContents);
+      await assertCellContents(driver, rc - 1, 0, secondContents);
     });
 
     it('does not allow adding rows from the row header context menu', async function() {
@@ -999,6 +998,64 @@ describe('dataentrygrid', async function () {
       const cmcs = await contextMenuContents(driver);
       cmcs.sort();
       assert.deepStrictEqual(cmcs, ['copy', 'cut']);
+    });
+
+    it('paste does not extend rows', async function() {
+      const rc = await getRowCount(driver);
+      const toPaste = [['1','2'], ['3','4'], ['5','6']];
+      clipboardy.writeSync(cellsToText(toPaste));
+      const rowStart = 1;
+      await clickCell(driver, rowStart, 0);
+      await sendKeys(driver, Key.CONTROL, 'v');
+      const actual = await getCells(driver, rowStart, toPaste.length, 0, 2);
+      assert.deepStrictEqual(
+        actual,
+        toPaste.slice(0, toPaste.length - rowStart),
+        'cell text did not match pasted text'
+      );
+      const rc2 = await getRowCount(driver);
+      assert.strictEqual(rc2, rc, 'row count changes when pasting');
+    });
+
+    it('setting by header does not add rows', async function() {
+      const rc = await getRowCount(driver);
+      const cols = {
+        beta: ['1.1', '2.2', '3.3', '4.4']
+      };
+      await driver.executeScript(
+        'var c=arguments[0];window.dataEntryGrid.setColumns(c);',
+        cols
+      );
+      const actualM = await getCells(driver, 0, data.length, 1, 2);
+      const actual = actualM.map(a => a[0]);
+      assert.deepEqual(actual, cols.beta.slice(0,data.length));
+      const rc2 = await getRowCount(driver);
+      assert.strictEqual(rc2, rc, 'row count changes when setting columns');
+    });
+
+    it('setting column array does not add rows', async function() {
+      const rc = await getRowCount(driver);
+      const cols = [
+        ['1.01', '2.02', '3.03', '4.04'],
+        ['1.11', '2.12', '3.13', '4.14'],
+        ['1.21', '2.22', '3.23', '4.24']
+      ]
+      await driver.executeScript(
+        'var c=arguments[0];window.dataEntryGrid.setColumnArray(c);',
+        cols
+      );
+      const actual = await getCells(driver, 0, data.length, 0, cols.length);
+      let expected = [];
+      for (var r = 0; r != data.length; ++r) {
+        let row = [];
+        for (var c = 0; c != cols.length; ++c) {
+          row.push(cols[c][r]);
+        }
+        expected.push(row);
+      }
+      assert.deepEqual(actual, expected);
+      const rc2 = await getRowCount(driver);
+      assert.strictEqual(rc2, rc, 'row count changes when setting columns');
     });
   });
 

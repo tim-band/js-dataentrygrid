@@ -33,6 +33,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     addColumnBefore: 'Add column before',
     addColumnAfter: 'Add column after'
   };
+  let rowHeaders = null;
   let columnsAreFlexible = false;
   const undo = undoSystem();
   function noop() { return null; }
@@ -251,8 +252,16 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     }
     let data = [];
     if (typeof(rows) === 'object') {
-      data = rows;
-      rows = data.length;
+      if (0 in rows && typeof(rows[0]) === 'object') {
+        data = rows;
+        rows = data.length;
+        rowHeaders = null;
+      } else {
+        rowHeaders = rows;
+        rows = rowHeaders.length;
+      }
+    } else {
+      rowHeaders = null;
     }
     const thead = createElementArray('THEAD', 'TR', 1, function (tr) {
       tr.setAttribute('class', 'header');
@@ -447,10 +456,15 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   }
 
   function extendRows(rows) {
-    const nr = rows - rowCount;
-    if (0 < nr) {
-      insertRows(rowCount, nr);
+    if (rowHeaders) {
+      return 0;
     }
+    const nr = rows - rowCount;
+    if (nr <= 0) {
+      return 0;
+    }
+    insertRows(rowCount, nr);
+    return nr;
   }
 
   function deleteRows(r, count) {
@@ -648,6 +662,10 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
 
   function goToNextRow() {
     if (rowCount <= anchorRow + 1) {
+      if (rowHeaders) {
+        doGoToCell(anchorRow, returnColumn);
+        return;
+      }
       undo.undoable(insertRows(rowCount, 1));
     }
     doGoToCell(anchorRow + 1, returnColumn);
@@ -747,8 +765,10 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       rc = 1;
       setSelection(r, 0, r, columnCount - 1);
     }
-    const menu = emptyContextMenu(5);
-    addRowsOptions(menu, r1, rc);
+    const menu = emptyContextMenu(rowHeaders? 2 : 5);
+    if (!rowHeaders) {
+      addRowsOptions(menu, r1, rc);
+    }
     addClipboardOptions(menu);
     attachContextMenu(ev, menu);
     return menu;
@@ -783,8 +803,17 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       cc = 1;
       setSelection(r, c, r, c);
     }
-    const menu = emptyContextMenu(columnsAreFlexible? 8 : 5);
-    addRowsOptions(menu, r1, rc);
+    let menuItemsCount = 2;
+    if (columnsAreFlexible) {
+      menuItemsCount += 3
+    }
+    if (!rowHeaders) {
+      menuItemsCount += 3;
+    }
+    const menu = emptyContextMenu(menuItemsCount);
+    if (!rowHeaders) {
+      addRowsOptions(menu, r1, rc);
+    }
     if (columnsAreFlexible) {
       addColumnsOptions(menu, c1, cc);
     }
@@ -902,10 +931,10 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       };
     }
     forEachRow(firstRow, rowCount, function (row, i, thisRow) {
-      const rowHeaders = row.getElementsByTagName('TH');
-      if (0 < rowHeaders.length) {
-        const rh = rowHeaders[0];
-        rh.textContent = thisRow + 1;
+      const headers = row.getElementsByTagName('TH');
+      if (0 < headers.length) {
+        const rh = headers[0];
+        rh.textContent = rowHeaders? rowHeaders[thisRow] : thisRow + 1;
         rh.onmousedown = function(ev) {
           ev = getEvent(ev);
           if (ev.button === 0) {
@@ -1421,6 +1450,17 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return c < 0 ? 0 : columnCount <= c ? columnCount - 1 : c;
   }
 
+  function rowsRequiredForColumns(columns) {
+    let rowsRequired = 0;
+    if (rowHeaders) {
+      return rowCount;
+    }
+    for (let k in columns) {
+      rowsRequired = Math.max(rowsRequired, columns[k].length);
+    }
+    return rowsRequired;
+  }
+
   table.onkeydown = tableKeyDownHandler;
   table.onkeypress = tableKeyPressHandler;
   table.oncut = tableCutHandler;
@@ -1453,9 +1493,12 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @param {string[]|number} headers Array of strings to become the new
      * column headers, or the number of columns to create for 'flexible columns'
      * (if column addition and deletion is required).
-     * @param {number|Array<Array<string>>} rows Number of rows the table should now
+     * @param {string[]|number|Array<Array<string>>} rows Array of strings
+     * to become row headers, number of rows the table should now
      * have, or array of rows, each of which is an array of the cells in that row.
      * Any row longer than the headers array is truncated.
+     * Rows will be 'flexible' (can be added and deleted) if rows is specified
+     * as a number or array of rows.
      * @param {Object[]=} subheaderSpecs List of option specifications (one
      * per column). Each is a map of names to display strings of the options.
      * Not permitted with flexible columns.
@@ -1464,10 +1507,12 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      */
     init: init,
     /**
-     * Adds empty rows to the bottom of the table if necessary.
+     * Adds empty rows to the bottom of the table if necessary, and
+     * if the rows do not have specified row headers.
      * @param {number} rows The total number of rows the table should
      * have after the call. If the table already had this many no more will
      * be added and none will be taken away.
+     * @returns Count of rows added.
      */
     extendRows: extendRows,
     /**
@@ -1659,8 +1704,9 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * 
      * You need not set all the columns. If any column in the input array
      * is longer than the number of already existing number of rows,
-     * the table will be expanded to fit. If any column is shorter, the
-     * remaining cells will be cleared. Cleared rows will not be deleted.
+     * the table will be expanded to fit, unless the table has defined
+     * row headers. If any column is shorter, the remaining
+     * cells will be cleared. Cleared rows will not be deleted.
      * @param {Map<any, Array<string>>} columns
      * The columns to set. The keys are strings referring to the headers
      * you want to set and each value is an array of column contents to
@@ -1669,10 +1715,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * columns to the table!
      */
     setColumns: function(columns) {
-      let rowsRequired = 0;
-      for (let k in columns) {
-        rowsRequired = Math.max(rowsRequired, columns[k].length);
-      }
+      const rowsRequired = rowsRequiredForColumns(columns);
       extendRows(rowsRequired);
       const h2i = columnHeaderToIndexMap();
       forEachRow(0, rowCount, (row, r) => {
@@ -1696,9 +1739,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @param {Array<Array<any>>} columns The columns to set, in order.
      */
      setColumnArray: function(columns) {
-      const rowsRequired = columns.reduce((maxSoFar, newColumn) => {
-        return Math.max(maxSoFar, newColumn.length);
-      }, 0);
+      const rowsRequired = rowsRequiredForColumns(columns);
       extendRows(rowsRequired);
       if (rowsRequired < rowCount) {
         deleteRows(rowsRequired, rowCount - rowsRequired);
@@ -1712,6 +1753,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
           cell.textContent = typeof(v) === 'undefined'? '' : v;
         }
       });
+      undo.clearUndo();
     },
     /**
      * Clear the undo and redo stacks.
