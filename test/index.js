@@ -508,6 +508,29 @@ describe('dataentrygrid', async function () {
       });
     });
 
+    it('paste does not extend columns', async function() {
+      const values = [[3,4.3,6], [1,0.1,2], [9,9.4,7]];
+      const headers = ['alpha', 'beta', 'gamma'];
+      await init(driver, headers, values);
+      const cc = await getColumnCount(driver);
+      const toPaste = [['1','2', '3']];
+      clipboardy.writeSync(cellsToText(toPaste));
+      const rowStart = 1;
+      const columnStart = 2;
+      await clickCell(driver, rowStart, columnStart);
+      await sendKeys(driver, Key.CONTROL, 'v');
+      const actual = await getCells(
+        driver, rowStart, rowStart + toPaste.length, columnStart, headers.length
+      );
+      assert.deepStrictEqual(
+        actual,
+        toPaste.map(row => row.slice(0, toPaste[0].length - columnStart)),
+        'cell text did not match pasted text'
+      );
+      const cc2 = await getColumnCount(driver);
+      assert.strictEqual(cc2, cc, 'column count changes when pasting');
+    });
+
     it('can be restored with undo and redo', async function() {
       const rows = [['23.4', '43.1'], ['0.123', '55']];
       await putCells(driver, 0, 2, 0, 2, rows);
@@ -1118,6 +1141,37 @@ describe('dataentrygrid', async function () {
       const option = await driver.findElement(By.css('option[value="column-delete"]'));
       const disabled = await option.getAttribute('disabled');
       assert(disabled, 'column delete option should be disabled');
+    });
+
+    they('can be extended with paste', async function() {
+      const values = [[3,4.3,6], [1,0.1,2], [9,9.4,7]];
+      const headers = ['alpha', 'beta', 'gamma'];
+      await init(driver, headers, values);
+      const cc = await getColumnCount(driver);
+      const toPaste = [['1','2', '3']];
+      clipboardy.writeSync(cellsToText(toPaste));
+      const rowStart = 1;
+      const columnStart = 2;
+      await clickCell(driver, rowStart, columnStart);
+      await sendKeys(driver, Key.CONTROL, 'v');
+      const actual = await getCells(
+        driver,
+        rowStart,
+        rowStart + toPaste.length,
+        columnStart,
+        columnStart + toPaste[0].length
+      );
+      assert.deepStrictEqual(
+        actual,
+        toPaste,
+        'cell text did not match pasted text'
+      );
+      const cc2 = await getColumnCount(driver);
+      assert.strictEqual(
+        cc2,
+        columnStart + toPaste[0].length,
+        'column count changes to wrong value when pasting'
+      );
     });
   });
 
