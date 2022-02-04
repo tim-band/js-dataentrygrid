@@ -70,30 +70,40 @@ but lacking:
 *   [columnCount](#columncount)
 *   [getColumnHeaders](#getcolumnheaders)
 *   [getSubheaders](#getsubheaders)
-*   [reunitter](#reunitter)
-    *   [Parameters](#parameters-6)
 *   [setReunittingFunction](#setreunittingfunction)
-    *   [Parameters](#parameters-7)
+    *   [Parameters](#parameters-6)
 *   [goToCell](#gotocell)
-    *   [Parameters](#parameters-8)
+    *   [Parameters](#parameters-7)
 *   [getCells](#getcells)
-    *   [Parameters](#parameters-9)
+    *   [Parameters](#parameters-8)
 *   [putCells](#putcells)
-    *   [Parameters](#parameters-10)
+    *   [Parameters](#parameters-9)
 *   [clearData](#cleardata)
 *   [getColumn](#getcolumn)
+    *   [Parameters](#parameters-10)
+*   [getColumnArray](#getcolumnarray)
+*   [getColumns](#getcolumns)
     *   [Parameters](#parameters-11)
+*   [setColumns](#setcolumns)
+    *   [Parameters](#parameters-12)
+*   [setColumnArray](#setcolumnarray)
+    *   [Parameters](#parameters-13)
 *   [clearUndo](#clearundo)
 *   [undo](#undo)
 *   [redo](#redo)
-*   [nullary](#nullary)
 *   [addWatcher](#addwatcher)
-    *   [Parameters](#parameters-12)
+    *   [Parameters](#parameters-14)
 *   [getTable](#gettable)
+*   [reunitter](#reunitter)
+    *   [Parameters](#parameters-15)
+*   [nullary](#nullary)
 
 ### createDataEntryGrid
 
 Initialize an HTML table to be a data entry grid.
+
+The HTML table made interactive will gain a `dataEntryGrid`
+member referring to the table object returned.
 
 #### Parameters
 
@@ -117,9 +127,12 @@ Any reunitting function is removed.
 *   `headers` **([Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)> | [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number))** Array of strings to become the new
     column headers, or the number of columns to create for 'flexible columns'
     (if column addition and deletion is required).
-*   `rows` **([number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>>)** Number of rows the table should now
+*   `rows` **([Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)> | [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>>)** Array of strings
+    to become row headers, number of rows the table should now
     have, or array of rows, each of which is an array of the cells in that row.
     Any row longer than the headers array is truncated.
+    Rows will be 'flexible' (can be added and deleted) if rows is specified
+    as a number or array of rows.
 *   `subheaderSpecs` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)>?** List of option specifications (one
     per column). Each is a map of names to display strings of the options.
     Not permitted with flexible columns.
@@ -128,13 +141,16 @@ Any reunitting function is removed.
 
 ### extendRows
 
-Adds empty rows to the bottom of the table if necessary.
+Adds empty rows to the bottom of the table if necessary, and
+if the rows do not have specified row headers.
 
 #### Parameters
 
 *   `rows` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The total number of rows the table should
     have after the call. If the table already had this many no more will
     be added and none will be taken away.
+
+Returns **any** Count of rows added.
 
 ### setText
 
@@ -143,7 +159,7 @@ Sets localized text for the row header context table.
 #### Parameters
 
 *   `newText` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Text of table ids to strings. The ids currently
-    recognized are 'cut', 'copy', `deleteRow`, `addRowBefore`, `addRowAfter`,
+    recognized are `cut`, `copy`, `deleteRow`, `addRowBefore`, `addRowAfter`,
     `deleteColumn`, `addColumnBefore` and `addColumnAfter`.
 
 ### setButtons
@@ -203,23 +219,6 @@ Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Gl
 Returns selected options in subheaders
 
 Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** array of strings
-
-### reunitter
-
-A function for changing a column in response to a subheader's
-value changing.
-
-Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)
-
-#### Parameters
-
-*   `columnIndex` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Which column is being changed
-*   `oldValue` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** The value that the subheader is being changed from
-*   `newValue` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** The value that the subheader is being changed from
-*   `columnValues` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** The current values in the column
-
-Returns **(null | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>)** The new values the column should have, or null
-if they should be unchanged.
 
 ### setReunittingFunction
 
@@ -281,6 +280,54 @@ Gets the text of the cells of one column.
 
 Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** data from that column
 
+### getColumnArray
+
+Returns an array of all columns.
+
+Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)\<any>>** All the columns as an array of
+arrays of cell contents.
+
+### getColumns
+
+Returns a map of column headers or indices to columns.
+
+#### Parameters
+
+*   `columns` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)\<any>?** Which columns to return, either
+    by index or by header (or a mixture). If not supplied, the entire set
+    of cell column headers is used. Any element that is not a column
+    header is ignored.
+
+### setColumns
+
+Sets the contents of the table by column.
+
+You need not set all the columns. If any column in the input array
+is longer than the number of already existing number of rows,
+the table will be expanded to fit, unless the table has defined
+row headers. If any column is shorter, the remaining
+cells will be cleared. Cleared rows will not be deleted.
+
+#### Parameters
+
+*   `columns` **[Map](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Map)\<any, [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>>** The columns to set. The keys are strings referring to the headers
+    you want to set and each value is an array of column contents to
+    set into that column. Any key that does not refer to any existing
+    header will be ignored: this function cannot be used to add
+    columns to the table!
+
+### setColumnArray
+
+Sets the contents of the table by column.
+
+On return, the table will contain the number of rows
+equal to the length of the longest column passed.
+Unset cells are cleared.
+
+#### Parameters
+
+*   `columns` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)\<any>>** The columns to set, in order.
+
 ### clearUndo
 
 Clear the undo and redo stacks.
@@ -292,12 +339,6 @@ Undoes the last action done or redone.
 ### redo
 
 Redoes the last undone action.
-
-### nullary
-
-Nullary function as a callback
-
-Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)
 
 ### addWatcher
 
@@ -313,6 +354,29 @@ table changes (excluding the subheader cells).
 Returns the table element.
 
 Returns **[HTMLTableElement](https://developer.mozilla.org/docs/Web/API/HTMLTableElement)** 
+
+### reunitter
+
+A function for changing a column in response to a subheader's
+value changing.
+
+Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)
+
+#### Parameters
+
+*   `columnIndex` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Which column is being changed
+*   `oldValue` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** The value that the subheader is being changed from
+*   `newValue` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** The value that the subheader is being changed from
+*   `columnValues` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** The current values in the column
+
+Returns **(null | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>)** The new values the column should have, or null
+if they should be unchanged.
+
+### nullary
+
+Nullary function as a callback
+
+Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)
 
 ## createDataEntryGrid
 

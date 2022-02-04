@@ -1132,14 +1132,17 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     let lastColumn = Math.max(anchorColumn, selectionColumn) + 1;
     if (lastColumn < firstColumn + maxRowLength) {
       lastColumn = firstColumn + maxRowLength;
+      if (columnCount < lastColumn && columnsAreFlexible) {
+        undo.undoable(insertColumns(columnCount, lastColumn - columnCount));
+      }
     }
     if (lastRow < firstRow + values.length) {
       lastRow = firstRow + values.length;
-      if (rowCount < lastRow) {
+      if (rowCount < lastRow && !rowHeaders) {
         undo.undoable(insertRows(rowCount, lastRow - rowCount));
       }
     }
-    // fill out extra columns if more are wanted
+    // fill out extra columns if more are needed to fill the selection
     for (let c = firstColumn + maxRowLength; c < lastColumn; ++c) {
       const source = c % maxRowLength;
       for (let r = 0; r !== values.length; ++r) {

@@ -1145,13 +1145,12 @@ describe('dataentrygrid', async function () {
 
     they('can be extended with paste', async function() {
       const values = [[3,4.3,6], [1,0.1,2], [9,9.4,7]];
-      const headers = ['alpha', 'beta', 'gamma'];
-      await init(driver, headers, values);
-      const cc = await getColumnCount(driver);
+      const columnCount = 3;
+      await init(driver, columnCount, values);
       const toPaste = [['1','2', '3']];
       clipboardy.writeSync(cellsToText(toPaste));
       const rowStart = 1;
-      const columnStart = 2;
+      const columnStart = columnCount - 1;
       await clickCell(driver, rowStart, columnStart);
       await sendKeys(driver, Key.CONTROL, 'v');
       const actual = await getCells(
