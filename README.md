@@ -39,6 +39,17 @@ but lacking:
 
 ## Changes
 
+### v2.1
+
+* New data-by-column functions:
+  * `getColumnArray`
+  * `getColumns`
+  * `setColumnArray`
+  * `setColumns`
+* New 'Rigid Rows' functionality: pass an array of strings as the `rows`
+argument to `init` to make the row headers names after the strings
+passed and to prevent the user from adding or deleting rows.
+
 ### v2.0
 
 *   Removal of function `getColumnSubheader`. You should no longer
