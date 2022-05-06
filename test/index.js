@@ -649,6 +649,7 @@ describe('dataentrygrid', async function () {
     });
 
     they('can be set automatically when requesting flexible columns', async function() {
+      this.timeout(3000);
       const columnCount = 60;
       await init(driver, columnCount, 3);
       const actualHeaders = await readHeaders(driver);
@@ -734,6 +735,31 @@ describe('dataentrygrid', async function () {
       ]);
       await driver.findElement(By.css('.subheader select')).click();
       await driver.findElement(By.css('option[value="subheader-beta"]')).click();
+    });
+
+    they('allow tooltips to be set', async function() {
+      await init(driver, ['one', 'two', 'three'], 5, [
+        { 'subheader-alpha': 'alpha', 'subheader-beta': 'beta' },
+        null, null
+      ]);
+      const expected = 'Tooltip one';
+      await driver.executeScript(
+        `window.dataEntryGrid.setSubheaderTooltip(0, "${expected}");`);
+      const actual = await driver.findElement(By.css('.subheader select')).getAttribute('title');
+      assert.strictEqual(actual, expected);
+    });
+
+    they('allow option tooltips to be set', async function() {
+      const option = 'subheader-beta';
+      await init(driver, ['one', 'two', 'three'], 5, [
+        { 'subheader-alpha': 'alpha', [option]: 'beta' },
+        null, null
+      ]);
+      const expected = 'Tooltip beta';
+      await driver.executeScript(
+        `window.dataEntryGrid.setSubheaderOptionTooltip(0, "${option}", "${expected}");`);
+      const actual = await driver.findElement(By.css(`.subheader select option[value="${option}"]`)).getAttribute('title');
+      assert.strictEqual(actual, expected);
     });
 
     they('allow a function to alter the column', async function() {
@@ -900,6 +926,24 @@ describe('dataentrygrid', async function () {
       assert.deepStrictEqual(actual02[2], expected[2]);
     });
 
+    // Check for regression where a zero-row table could have columns added
+    // to it but it would result in the selection being broken and no input being
+    // able to be made.
+    they('do not break selection when added to zero rows', async function() {
+      const cols = [
+        [1.1, 2.2],
+        [4.4]
+      ];
+      const cell = 3.3;
+      await driver.executeScript(
+        'var g=window.dataEntryGrid,c=arguments[0];g.init(["a","b"],[[]]);g.setColumnArray(c);',
+        cols
+      );
+      await clickCell(driver, 0, 0);
+      await sendKeys(driver, cell, Key.RETURN);
+      await assertCellContents(driver, 0, 0, cell);
+    });
+
     they('can be set and got by header', async function() {
       const cols = {
         blue: [1.1, 2.2, 3.3],
@@ -990,11 +1034,8 @@ describe('dataentrygrid', async function () {
     });
 
     it('Row names are as specified', async function() {
-      const rc = await getRowCount(driver);
-      assert.strictEqual(rc, rowHeaders.length);
-      for (var i = 0; i != rowHeaders.length; ++i) {
-        await assertRowHeaderText(driver, i, rowHeaders[i]);
-      }
+      const rhs = await getRowHeaders(driver);
+      assert.deepStrictEqual(rhs, rowHeaders);
     });
 
     it('No new rows appear when pressing return on the last line', async function() {
@@ -1742,6 +1783,10 @@ async function getSubheaders(driver) {
 
 async function getColumnHeaders(driver) {
   return await driver.executeScript('return window.dataEntryGrid.getColumnHeaders();');
+}
+
+async function getRowHeaders(driver) {
+  return await driver.executeScript('return window.dataEntryGrid.getRowHeaders();');
 }
 
 async function mouseDragCells(driver, coords) {

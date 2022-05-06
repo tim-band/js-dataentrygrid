@@ -2,7 +2,8 @@
 
 Featherweight Excel-like grid for data entry
 
-Build with `npm install .` then `npm run build`. Run tests with `npm run test`
+Build with `npm install .` then `npm run build`, and `npm run docs` if
+you want to build the documentation. Run tests with `npm run test`
 or `npm run test-firefox`. You can run just one test by adding
 `-- --fgrep "test title"`. Update the `README.md` documentation
 with `npm run docs`.
@@ -39,16 +40,23 @@ but lacking:
 
 ## Changes
 
+### v2.2
+
+* New subheader tooltip functions:
+  *   `setSubheaderTooltip`
+  *   `setSubheaderOptionTooltip`
+* `getRowHeaders` function
+
 ### v2.1
 
-* New data-by-column functions:
-  * `getColumnArray`
-  * `getColumns`
-  * `setColumnArray`
-  * `setColumns`
-* New 'Rigid Rows' functionality: pass an array of strings as the `rows`
-argument to `init` to make the row headers names after the strings
-passed and to prevent the user from adding or deleting rows.
+*   New data-by-column functions:
+    *   `getColumnArray`
+    *   `getColumns`
+    *   `setColumnArray`
+    *   `setColumns`
+*   New 'Rigid Rows' functionality: pass an array of strings as the `rows`
+    argument to `init` to make the row headers names after the strings
+    passed and to prevent the user from adding or deleting rows.
 
 ### v2.0
 
@@ -68,45 +76,50 @@ passed and to prevent the user from adding or deleting rows.
     *   [Parameters](#parameters)
 *   [init](#init)
     *   [Parameters](#parameters-1)
-*   [extendRows](#extendrows)
+*   [setSubheaderTooltip](#setsubheadertooltip)
     *   [Parameters](#parameters-2)
-*   [setText](#settext)
+*   [setSubheaderOptionTooltip](#setsubheaderoptiontooltip)
     *   [Parameters](#parameters-3)
-*   [setButtons](#setbuttons)
+*   [extendRows](#extendrows)
     *   [Parameters](#parameters-4)
+*   [setText](#settext)
+    *   [Parameters](#parameters-5)
+*   [setButtons](#setbuttons)
+    *   [Parameters](#parameters-6)
 *   [getSelection](#getselection)
 *   [setSelection](#setselection)
-    *   [Parameters](#parameters-5)
+    *   [Parameters](#parameters-7)
 *   [rowCount](#rowcount)
 *   [columnCount](#columncount)
 *   [getColumnHeaders](#getcolumnheaders)
+*   [getRowHeaders](#getrowheaders)
 *   [getSubheaders](#getsubheaders)
 *   [setReunittingFunction](#setreunittingfunction)
-    *   [Parameters](#parameters-6)
-*   [goToCell](#gotocell)
-    *   [Parameters](#parameters-7)
-*   [getCells](#getcells)
     *   [Parameters](#parameters-8)
-*   [putCells](#putcells)
+*   [goToCell](#gotocell)
     *   [Parameters](#parameters-9)
+*   [getCells](#getcells)
+    *   [Parameters](#parameters-10)
+*   [putCells](#putcells)
+    *   [Parameters](#parameters-11)
 *   [clearData](#cleardata)
 *   [getColumn](#getcolumn)
-    *   [Parameters](#parameters-10)
+    *   [Parameters](#parameters-12)
 *   [getColumnArray](#getcolumnarray)
 *   [getColumns](#getcolumns)
-    *   [Parameters](#parameters-11)
-*   [setColumns](#setcolumns)
-    *   [Parameters](#parameters-12)
-*   [setColumnArray](#setcolumnarray)
     *   [Parameters](#parameters-13)
+*   [setColumns](#setcolumns)
+    *   [Parameters](#parameters-14)
+*   [setColumnArray](#setcolumnarray)
+    *   [Parameters](#parameters-15)
 *   [clearUndo](#clearundo)
 *   [undo](#undo)
 *   [redo](#redo)
 *   [addWatcher](#addwatcher)
-    *   [Parameters](#parameters-14)
+    *   [Parameters](#parameters-16)
 *   [getTable](#gettable)
 *   [reunitter](#reunitter)
-    *   [Parameters](#parameters-15)
+    *   [Parameters](#parameters-17)
 *   [nullary](#nullary)
 
 ### createDataEntryGrid
@@ -149,6 +162,25 @@ Any reunitting function is removed.
     Not permitted with flexible columns.
 *   `subheaderDefaults` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>?** List of names that are the initial
     settings of the subheader selects. Not permitted with flexible columns.
+
+### setSubheaderTooltip
+
+Sets the tooltip for a subheader (if it exists)
+
+#### Parameters
+
+*   `index` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The index of the column to change
+*   `text` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** The tooltip text
+
+### setSubheaderOptionTooltip
+
+Sets the tooltip for an option on a subheader
+
+#### Parameters
+
+*   `index` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The index of the column to change
+*   `optionName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** The name of the option to change
+*   `text` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** The tooltip text
 
 ### extendRows
 
@@ -224,6 +256,12 @@ Returns **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/G
 Returns the column headers.
 
 Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** array of strings.
+
+### getRowHeaders
+
+Returns the row headers.
+
+Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** array of strings
 
 ### getSubheaders
 

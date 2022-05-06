@@ -94,13 +94,17 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return tr[0].getElementsByTagName('TH');
   }
 
+  function getTextContents(array, startFrom) {
+    const r = [];
+    for (let i = startFrom; i < array.length; ++i) {
+      r.push(array[i].textContent);
+    }
+    return r;
+  }
+
   function getColumnHeaders() {
     const ths = getColumnHeaderRow();
-    const headers = [];
-    for (let i = 1; i !== ths.length; ++i) {
-      headers.push(ths[i].textContent);
-    }
-    return headers;
+    return getTextContents(ths, 1);
   }
 
   function columnHeaderToIndexMap() {
@@ -110,6 +114,15 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       mapping[ths[i].textContent] = i - 1;
     }
     return mapping;
+  }
+
+  function getRowHeaders() {
+    const tbody = table.getElementsByTagName('TBODY');
+    if (tbody.length === 0) {
+      return [];
+    }
+    const ths = tbody[0].getElementsByTagName('TH');
+    return getTextContents(ths, 0);
   }
 
   // f is passed the select element and index (0-based) (only if the select element exists)
@@ -1215,7 +1228,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       if (ev.key === 'Enter' || ev.key === ' ') {
         const index = contextMenu.selectedIndex;
         if (0 <= index) {
-          const options = contextMenu.getElementsByTagName('option');
+          const options = contextMenu.getElementsByTagName('OPTION');
           options[index].onclick();
           return preventDefault(ev);
         }
@@ -1510,6 +1523,37 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      */
     init: init,
     /**
+     * Sets the tooltip for a subheader (if it exists)
+     * @param {number} index The index of the column to change
+     * @param {string} text The tooltip text
+     */
+    setSubheaderTooltip: function(index, text) {
+      forEachSubheader(function(elt, i) {
+        if (i == index) {
+          elt.setAttribute('title', text);
+        }
+      });
+    },
+    /**
+     * Sets the tooltip for an option on a subheader
+     * @param {number} index The index of the column to change
+     * @param {string} optionName The name of the option to change
+     * @param {string} text The tooltip text
+     */
+    setSubheaderOptionTooltip: function(index, optionName, text) {
+      forEachSubheader(function(elt, i) {
+        if (i == index) {
+          var options = elt.getElementsByTagName('OPTION');
+          for (var j in options) {
+            var option = options[j];
+            if (option.value == optionName) {
+              option.setAttribute('title', text);
+            }
+          }
+        }
+      });
+    },
+    /**
      * Adds empty rows to the bottom of the table if necessary, and
      * if the rows do not have specified row headers.
      * @param {number} rows The total number of rows the table should
@@ -1586,6 +1630,11 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
      * @returns {string[]} array of strings.
      */
     getColumnHeaders: getColumnHeaders,
+    /**
+     * Returns the row headers.
+     * @returns {string[]} array of strings
+     */
+    getRowHeaders: getRowHeaders,
     /**
      * Returns selected options in subheaders
      * @returns  {string[]} array of strings
