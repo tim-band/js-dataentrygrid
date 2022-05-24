@@ -40,12 +40,16 @@ but lacking:
 
 ## Changes
 
+### v2.3
+
+New computed formatting function `setFormattingFunction`.
+
 ### v2.2
 
-* New subheader tooltip functions:
-  *   `setSubheaderTooltip`
-  *   `setSubheaderOptionTooltip`
-* `getRowHeaders` function
+*   New subheader tooltip functions:
+    *   `setSubheaderTooltip`
+    *   `setSubheaderOptionTooltip`
+*   `getRowHeaders` function
 
 ### v2.1
 
@@ -96,30 +100,34 @@ but lacking:
 *   [getSubheaders](#getsubheaders)
 *   [setReunittingFunction](#setreunittingfunction)
     *   [Parameters](#parameters-8)
-*   [goToCell](#gotocell)
+*   [setFormattingFunction](#setformattingfunction)
     *   [Parameters](#parameters-9)
-*   [getCells](#getcells)
+*   [goToCell](#gotocell)
     *   [Parameters](#parameters-10)
-*   [putCells](#putcells)
+*   [getCells](#getcells)
     *   [Parameters](#parameters-11)
+*   [putCells](#putcells)
+    *   [Parameters](#parameters-12)
 *   [clearData](#cleardata)
 *   [getColumn](#getcolumn)
-    *   [Parameters](#parameters-12)
+    *   [Parameters](#parameters-13)
 *   [getColumnArray](#getcolumnarray)
 *   [getColumns](#getcolumns)
-    *   [Parameters](#parameters-13)
-*   [setColumns](#setcolumns)
     *   [Parameters](#parameters-14)
-*   [setColumnArray](#setcolumnarray)
+*   [setColumns](#setcolumns)
     *   [Parameters](#parameters-15)
+*   [setColumnArray](#setcolumnarray)
+    *   [Parameters](#parameters-16)
 *   [clearUndo](#clearundo)
 *   [undo](#undo)
 *   [redo](#redo)
 *   [addWatcher](#addwatcher)
-    *   [Parameters](#parameters-16)
+    *   [Parameters](#parameters-17)
 *   [getTable](#gettable)
 *   [reunitter](#reunitter)
-    *   [Parameters](#parameters-17)
+    *   [Parameters](#parameters-18)
+*   [formatter](#formatter)
+    *   [Parameters](#parameters-19)
 *   [nullary](#nullary)
 
 ### createDataEntryGrid
@@ -276,7 +284,21 @@ This function can change the values in the column.
 
 #### Parameters
 
-*   `fn` **[reunitter](#reunitter)** 
+*   `fn` **[reunitter](#reunitter)** The function to set.
+
+### setFormattingFunction
+
+Sets a function to be called whenever a cell value is changed.
+This function sets the formatting of the cell based on its
+position and new value. If multiple cells are being set at once,
+the function will be called for each cell in turn. Reunitting
+a column will call this for all values in the column with the new
+values.
+
+#### Parameters
+
+*   `fn` **(null | [formatter](#formatter))** The function to set, or null to remove
+    any formatting function.
 
 ### goToCell
 
@@ -420,6 +442,24 @@ Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Sta
 
 Returns **(null | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)<[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>)** The new values the column should have, or null
 if they should be unchanged.
+
+### formatter
+
+A function for changing a cell's formatting in response to the value
+changing.
+
+Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)
+
+#### Parameters
+
+*   `row` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The index of the row being set
+*   `column` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The index of the column being set.
+*   `value` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** The new value.
+
+Returns **[object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** An object with two optional keys: a key `error`
+with a boolean value sets or resets 'error' in the element's class
+attribute; a key 'tooltip' sets a tooltip for the cell if a string, removes
+any tooltip if null.
 
 ### nullary
 

@@ -39,6 +39,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
   function noop() { return null; }
   var commitEdit = noop;
   var reunittingFunction = null;
+  var formattingFunction = null;
 
   const table = function() {
     if (typeof(containerId) === 'string') {
@@ -305,7 +306,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       createElementArray(tr, 'TH', 1);
       createElementArray(tr, 'TD', headers.length, function (td, j) {
         if (j < row.length) {
-          td.textContent = row[j];
+          setCellContent(td, i, j, row[j]);
         }
         if (i === 0 && j === 0) {
           td.setAttribute('class', 'anchor');
@@ -1032,11 +1033,37 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     return vss;
   }
 
+  function setCellContent(cell, row, column, value) {
+    cell.textContent = value;
+    if (!formattingFunction) {
+      return;
+    }
+    var r = formattingFunction(row, column, value);
+    if (!r) {
+      return ;
+    }
+    if ('error' in r) {
+      if (r.error) {
+        cell.classList.add('error');
+      } else {
+        cell.classList.remove('error');
+      }
+    }
+    if ('tooltip' in r) {
+      if (r.tooltip) {
+        cell.setAttribute('title', r.tooltip);
+      } else {
+        cell.removeAttribute('title');
+      }
+    }
+  }
+
   function putCells(rowStart, rowEnd, columnStart, columnEnd, values) {
     forEachRow(rowStart, rowEnd, function (row, i) {
       var vr = values[i];
       forEachColumn(row, columnStart, columnEnd, function (cell, j) {
-        cell.textContent = typeof (vr) === 'undefined' ? '' : vr[j];
+        var t = typeof (vr) === 'undefined' ? '' : vr[j];
+        setCellContent(cell, rowStart + i, columnStart + j, t);
       });
     });
   }
@@ -1054,7 +1081,7 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     if (newColumn) {
       forEachRow(0, rowCount, function(row, i) {
         forEachColumn(row, columnIndex, columnIndex+1, function(cell) {
-          cell.textContent = newColumn[i];
+          setCellContent(cell, i, columnIndex, newColumn[i]);
         });
       });
     }
@@ -1654,10 +1681,35 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     /**
      * Sets a function to be called whenever a subheader is changed.
      * This function can change the values in the column.
-     * @param {reunitter} fn 
+     * @param {reunitter} fn The function to set.
      */
     setReunittingFunction: function (fn) {
       reunittingFunction = fn;
+    },
+    /**
+     * A function for changing a cell's formatting in response to the value
+     * changing.
+     * @callback formatter
+     * @param {number} row The index of the row being set
+     * @param {number} column The index of the column being set.
+     * @param {string} value The new value.
+     * @return {object} An object with two optional keys: a key `error`
+     * with a boolean value sets or resets 'error' in the element's class
+     * attribute; a key 'tooltip' sets a tooltip for the cell if a string, removes
+     * any tooltip if null.
+     */
+    /**
+     * Sets a function to be called whenever a cell value is changed.
+     * This function sets the formatting of the cell based on its
+     * position and new value. If multiple cells are being set at once,
+     * the function will be called for each cell in turn. Reunitting
+     * a column will call this for all values in the column with the new
+     * values.
+     * @param {null|formatter} fn The function to set, or null to remove
+     * any formatting function.
+     */
+    setFormattingFunction: function(fn) {
+      formattingFunction = fn;
     },
     /**
      * Moves the anchor (and selection to the same place)
@@ -1774,10 +1826,12 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         const cells = row.getElementsByTagName('TD');
         for(let k in columns) {
           if (k in h2i) {
-            const cell = cells[h2i[k]];
+            const c = h2i[k];
+            const cell = cells[c];
             const column = columns[k];
             const v = column[r];
-            cell.textContent = typeof(v) === 'undefined'? '' : v;
+            const t = typeof(v) === 'undefined'? '' : v;
+            setCellContent(cell, r, c, t);
           }
         }
       });
@@ -1802,7 +1856,8 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
           const column = columns[k];
           const cell = cells[k];
           const v = column[r];
-          cell.textContent = typeof(v) === 'undefined'? '' : v;
+          const t = typeof(v) === 'undefined'? '' : v;
+          setCellContent(cell, r, k, t);
         }
       });
       undo.clearUndo();

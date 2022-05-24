@@ -35,9 +35,13 @@ const browser = browserArg? browserArg : 'chrome';
 describe('dataentrygrid', async function () {
   let server = null;
   let driver = null;
+  let serverPort = 3004;
 
-  async function doGet() {
-    await driver.get("http://localhost:3004/test/dataentrygrid.html");
+  async function doGet(path) {
+    if (!path) {
+      path = '/test/dataentrygrid.html';
+    }
+    await driver.get(`http://localhost:${serverPort}${path}`);
   }
 
   before(function () {
@@ -59,7 +63,7 @@ describe('dataentrygrid', async function () {
           resp.end(content, "utf-8");
         });
       });
-      server.listen(3004, function() {
+      server.listen(serverPort, function() {
         new Builder()
             .forBrowser(browser)
             .setIeOptions(new Options().requireWindowFocus(true))
@@ -180,7 +184,7 @@ describe('dataentrygrid', async function () {
     });
 
     it ('moves with the page up/down keys', async function() {
-      await driver.get("http://localhost:3004/test/deg-iframe.html");
+      await doGet("/test/deg-iframe.html");
       const frame = await driver.findElement(By.id('deg-frame'));
       const rect = await getBoundingRect(driver, frame);
       const height = rect.bottom - rect.top;
@@ -240,7 +244,7 @@ describe('dataentrygrid', async function () {
     });
 
     it ('gets extended with the page up/down keys', async function() {
-      await driver.get("http://localhost:3004/test/deg-iframe.html");
+      await doGet("/test/deg-iframe.html");
       const frame = await driver.findElement(By.id('deg-frame'));
       const rect = await getBoundingRect(driver, frame);
       const height = rect.bottom - rect.top;
@@ -763,6 +767,7 @@ describe('dataentrygrid', async function () {
     });
 
     they('allow a function to alter the column', async function() {
+      this.timeout(4000);
       await driver.executeScript(
         'window.dataEntryGrid.init(["length","width"], ['
         + '[50.8, 130],'
@@ -1354,7 +1359,7 @@ describe('dataentrygrid', async function () {
     });
 
     beforeEach(async function() {
-      await driver.get("http://localhost:3004/test/deg-iframe.html");
+      await doGet("/test/deg-iframe.html");
       frame = await driver.findElement(By.id('deg-frame'));
       frameRect = await getBoundingRect(driver, frame);
       await init(driver, ['one', 'two', 'three', 'four', 'five', ''], standardRows);
@@ -1441,6 +1446,93 @@ describe('dataentrygrid', async function () {
       await assertCount(3);
       await rowHeaderMenuSelect(driver, 0, 'add-before');
       await assertCount(4);
+    });
+  });
+
+  describe('computed formatting', function() {
+    beforeEach(async function () {
+      await doGet();
+      await driver.executeScript(
+        'dataEntryGrid.setFormattingFunction(function(r,c,v){return (r+c)==Number(v)?{error:false,tooltip:null}:{error:true,tooltip:"This is wrong"};});'
+      );
+      await init(driver, ['one', 'two', 'three'], [[0, 5, 2], [1, 2, 3]]);
+    });
+
+    it('is set on init', async function() {
+      const e00 = await getCell(driver, 0, 0);
+      const e01 = await getCell(driver, 0, 1);
+      const e10 = await getCell(driver, 1, 0);
+      const e11 = await getCell(driver, 1, 1);
+      await assertHasNoClass(e00, 'error');
+      await assertHasNoTitle(e00);
+      await assertHasClass(e01, 'error');
+      await assertHasTitle(e01, 'This is wrong');
+      await assertHasNoClass(e10, 'error');
+      await assertHasNoTitle(e10);
+      await assertHasNoClass(e11, 'error');
+      await assertHasNoTitle(e11);
+    });
+
+    it('is set on write', async function() {
+      const e10 = await getCell(driver, 1, 0);
+      await e10.click();
+      await sendKeys(driver, '9', Key.ENTER);
+      await assertHasClass(e10, 'error');
+      await assertHasTitle(e10, 'This is wrong');
+    });
+
+    it('is unset on write', async function() {
+      const e01 = await getCell(driver, 0, 1);
+      await e01.click();
+      await sendKeys(driver, '1', Key.ENTER);
+      await assertHasNoClass(e01, 'error');
+      await assertHasNoTitle(e01);
+    });
+
+    it('is set on column set', async function() {
+      const cols = {
+        two: [1, 0]
+      };
+      await driver.executeScript(
+        'var c=arguments[0];window.dataEntryGrid.setColumns(c);',
+        cols
+      );
+      const e10 = await getCell(driver, 1, 0);
+      const e11 = await getCell(driver, 1, 1);
+      await assertHasNoClass(e10);
+      await assertHasClass(e11, 'error');
+      await assertHasNoTitle(e10);
+      await assertHasTitle(e11, 'This is wrong');
+    });
+
+    it('is set or reset on reunitting', async function() {
+      this.timeout(4000);
+      await driver.executeScript(
+        'window.dataEntryGrid.init(["one","two"], ['
+        + '[0, 1],'
+        + '[0, 2],'
+        +'], ['
+        +'{"zero": "zero-based", "one": "one-based"},'
+        +'{"zero": "zero-based", "one": "one-based"}]);'
+        +'window.dataEntryGrid.setReunittingFunction(function(i,ov,nv,vs){'
+        + 'if (ov=="zero" && nv == "one") {return(vs.map(v=>v+1));}'
+        + 'if (ov=="one" && nv == "zero") {return(vs.map(v=>v-1));}'
+        + 'return vs;'
+        +'});'
+      );
+      const e00 = await getCell(driver, 0, 0);
+      const e10 = await getCell(driver, 1, 0);
+      await assertHasNoClass(e00);
+      await assertHasClass(e10, 'error');
+      await assertHasNoTitle(e00);
+      await assertHasTitle(e10, 'This is wrong');
+      const select = await driver.findElement(By.css('.subheader select'));
+      select.click();
+      await driver.findElement(By.css('option[value="one"]')).click();
+      await assertHasClass(e00, 'error');
+      await assertHasNoClass(e10);
+      await assertHasTitle(e00, 'This is wrong');
+      await assertHasNoTitle(e10);
     });
   });
 });
@@ -1809,15 +1901,19 @@ function cellSelector(row, column) {
   return By.css(`#input tbody tr:nth-child(${row + 1}) td:nth-child(${column + 2})`);
 }
 
+async function elementName(element) {
+  const tag = await element.getTagName();
+  const id = await element.getId();
+  return id? `${tag} element ${id}` : `${tag} element`;
+}
+
 async function assertHasClass(element, c, message) {
   const cs = await element.getAttribute('class');
   if (cs && (' '+cs+' ').includes(c)) {
     return;
   }
   if (!message) {
-    const tag = await element.getTagName();
-    const id = await element.getId();
-    const name = id? `${tag} element ${id}` : `${tag} element`;
+    const name = await elementName(element);
     message = `${name} does not have the class ${c} (rather, it has ${cs})`;
   }
   assert.fail(message);
@@ -1829,10 +1925,34 @@ async function assertHasNoClass(element, c, message) {
     return;
   }
   if (!message) {
-    const tag = await element.getTagName();
-    const id = await element.getId();
-    const name = id? `${tag} element ${id}` : `${tag} element`;
+    const name = await elementName(element);
     message = `${name} should not have the class ${c} (it has ${cs})`;
+  }
+  assert.fail(message);
+}
+
+async function assertHasTitle(element, t, message) {
+  const a = await element.getAttribute('title');
+  if (a && a === t) {
+    return;
+  }
+  if (!message) {
+    const name = await elementName(element);
+    message = a? 
+      `${name} does not have the title ${t} (it has ${a})`
+      : `${name} does not have the title ${t} (it has no title)`;
+  }
+  assert.fail(message);
+}
+
+async function assertHasNoTitle(element, message) {
+  const a = await element.getAttribute('title');
+  if (!a) {
+    return;
+  }
+  if (!message) {
+    const name = await elementName(element);
+    message = `${name} should have no title (it has ${a})`;
   }
   assert.fail(message);
 }
