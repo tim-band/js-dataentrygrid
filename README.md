@@ -93,6 +93,7 @@ New computed formatting function `setFormattingFunction`.
 *   [getSelection](#getselection)
 *   [setSelection](#setselection)
     *   [Parameters](#parameters-7)
+*   [selectAll](#selectall)
 *   [rowCount](#rowcount)
 *   [columnCount](#columncount)
 *   [getColumnHeaders](#getcolumnheaders)
@@ -246,6 +247,11 @@ Sets the position and size of the selection.
     selected rows (optional, default `anchorRow`)
 *   `selectionColumn` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** The other end
     of the selected columns (optional, default `anchorColumn`)
+
+### selectAll
+
+Sets the selection to be all cells, with the anchor at the
+top left.
 
 ### rowCount
 
@@ -424,7 +430,7 @@ table changes (excluding the subheader cells).
 
 Returns the table element.
 
-Returns **[HTMLTableElement](https://developer.mozilla.org/docs/Web/API/HTMLTableElement)** 
+Returns **[HTMLTableElement](https://developer.mozilla.org/docs/Web/API/HTMLTableElement)**&#x20;
 
 ### reunitter
 

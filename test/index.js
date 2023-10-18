@@ -229,6 +229,31 @@ describe('dataentrygrid', async function () {
       await checkSelection(driver, 1, 1, 1, 1, 'second squeeze');
     });
 
+    it('gets extended with shift-ctrl-arrows', async function() {
+      let rows = [];
+      const row_count = 9;
+      const row_start = 5;
+      for (var r = 1; r <= row_count; ++r) {
+        rows.push([r, r*2, r*3, r*4, r*5]);
+      }
+      await init(driver, ['one', 'two', 'three', 'four', 'five'], rows);
+      await clickCell(driver, row_start, 2);
+      await sendKeys(driver, Key.SHIFT, Key.CONTROL, Key.ARROW_UP);
+      await checkSelection(driver, row_start, 0, 2, 2, 'first stretch');
+      await sendKeys(driver, Key.SHIFT, Key.CONTROL, Key.ARROW_LEFT);
+      await checkSelection(driver, row_start, 0, 2, 0, 'second stretch');
+      await sendKeys(driver, Key.SHIFT, Key.CONTROL, Key.ARROW_DOWN);
+      await checkSelection(driver, row_start, row_count - 1, 2, 0, 'third stretch');
+      await sendKeys(driver, Key.SHIFT, Key.CONTROL, Key.ARROW_RIGHT);
+      await checkSelection(driver, row_start, row_count - 1, 2, 4, 'fourth stretch');
+    });
+
+    it('control-A selects everything', async function() {
+      await clickCell(driver, 1, 1);
+      await sendKeys(driver, Key.CONTROL, 'a');
+      await checkSelection(driver, 0, 1, 0, 2, 'select all');
+    });
+
     it('gets extended with the home/end keys', async function() {
       const rc = 3, headers = ['one', 'two', 'three'], cc = headers.length;
       await init(driver, headers, rc);

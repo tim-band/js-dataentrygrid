@@ -662,6 +662,10 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     getAnchor().classList.add('anchor');
   }
 
+  function selectAll() {
+    setSelection(0, 0, rowCount - 1, columnCount - 1);
+  }
+
   function doGoToCell(r, c) {
     undo.undoable(commitEdit());
     getAnchor().classList.remove('anchor');
@@ -1262,8 +1266,9 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
       }
       return;
     }
-    // meta key so that Apple users can press meta-Z for undo.
+    // meta key so that Apple users can press meta
     if ((ev.ctrlKey || ev.metaKey) && !ev.altKey) {
+      // Ctrl-Z for undo
       if (ev.keyCode === 90) {
         if (ev.shiftKey) {
           doRedo();
@@ -1271,6 +1276,10 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
           doUndo();
         }
         return preventDefault(ev);
+      }
+      // Ctrl-A for select all
+      if (ev.keyCode === 65 && !ev.shiftKey) {
+        selectAll();
       }
     }
     if (!inputBox && (ev.key === 'Delete' || ev.key === 'Backspace')) {
@@ -1322,25 +1331,25 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
     const here = {row, column};
     if (ev.key === 'ArrowUp') {
       if (0 < row) {
-        return { row: row - 1, column };
+        return { row: ev.ctrlKey? 0 : row - 1, column };
       }
       return here;
     }
     if (ev.key === 'ArrowDown') {
       if (row + 1 < rowCount) {
-        return { row: row + 1, column };
+        return { row: ev.ctrlKey? rowCount - 1 : row + 1, column };
       }
       return here;
     }
     if (ev.key === 'ArrowLeft') {
       if (0 < column) {
-        return { row, column: column - 1 };
+        return { row, column: ev.ctrlKey? 0 : column - 1 };
       }
       return here;
     }
     if (ev.key === 'ArrowRight') {
       if (column + 1 < columnCount) {
-        return { row, column: column + 1 };
+        return { row, column: ev.ctrlKey? columnCount - 1 : column + 1 };
       }
       return here;
     }
@@ -1642,6 +1651,11 @@ function createDataEntryGrid(containerId, headers, newRowCount) {
         clampRow(withDefault(selectionRow, anchorRow)),
         clampColumn(withDefault(selectionColumn, anchorColumn)));
     },
+    /**
+     * Sets the selection to be all cells, with the anchor at the
+     * top left.
+     */
+    selectAll: selectAll,
     /**
      * Returns the number of rows.
      * @returns {number} of rows in the table
